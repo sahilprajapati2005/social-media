@@ -4,19 +4,23 @@ const cors = require('cors');
 const http = require('http'); // Required for Socket.io
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
-const cookieParser = require('cookie-parser'); // Import cookie-parser
+const cookieParser = require('cookie-parser');
+const passport = require('passport'); // <--- 1. Import Passport
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
-// 1. Load Environment Variables
+// 2. Load Environment Variables
 dotenv.config();
 
-// 2. Connect to Database
+// 3. Connect to Database
 connectDB();
+
+// 4. Load Passport Config
+require('./config/passport'); // <--- 2. Load the strategy we created
 
 const app = express();
 const server = http.createServer(app);
 
-// 3. Initialize Socket.io
+// 5. Initialize Socket.io
 const io = new Server(server, {
     cors: {
         origin: "http://localhost:5173", // Your Vite Frontend URL
@@ -25,7 +29,7 @@ const io = new Server(server, {
     }
 });
 
-// 4. Middlewares
+// 6. Middlewares
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 app.use(cookieParser()); // Parse cookies
@@ -34,14 +38,16 @@ app.use(cors({
     credentials: true // Allow cookies/headers to be sent
 }));
 
-// 5. API Routes
+// 7. Initialize Passport Middleware (Required for Google Auth)
+app.use(passport.initialize()); // <--- 3. Initialize Passport
+
+// 8. API Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/posts', require('./routes/postRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
-// app.use('/api/users', require('./routes/userRoutes')); // Uncomment when userController is ready
 
-// 6. Socket.io Real-Time Logic
+// 9. Socket.io Real-Time Logic
 let users = []; // Keep track of online users: [{ userId, socketId }]
 
 const addUser = (userId, socketId) => {
@@ -80,8 +86,7 @@ io.on('connection', (socket) => {
                 text,
             });
         } 
-        // Note: We don't need an 'else' here because the message is already 
-        // saved to MongoDB via the API endpoint /api/messages/
+        // Message is already saved to MongoDB via the API endpoint
     });
 
     // D. Disconnection
@@ -92,11 +97,11 @@ io.on('connection', (socket) => {
     });
 });
 
-// 7. Error Handling Middlewares (Must be last)
+// 10. Error Handling Middlewares (Must be last)
 app.use(notFound);
 app.use(errorHandler);
 
-// 8. Start Server
+// 11. Start Server
 const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => {
