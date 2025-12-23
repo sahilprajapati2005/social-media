@@ -3,26 +3,26 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 
 // --- Layouts & Guards ---
-import MainLayout from '../components/layout/MainLayout';
-import ProtectedRoute from '../components/guards/ProtectedRoute';
+import MainLayout from './components/layout/MainLayout';
+import ProtectedRoute from "./components/guards/ProtectedRoute";
 
 // --- Auth Pages ---
-import LoginPage from '../pages/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
-import OtpVerificationPage from '../pages/OtpVerificationPage';
-import ForgotPasswordPage from '../pages/ForgotPasswordPage';
-import ResetPasswordPage from '../pages/ResetPasswordPage';
-import AuthSuccess from '../features/auth/components/AuthSuccess';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import OtpVerificationPage from './pages/OtpVerificationPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import AuthSuccess from './features/auth/components/AuthSuccess';
 
 // --- Feature Pages ---
-import FeedPage from '../pages/FeedPage';
-import ProfilePage from '../pages/ProfilePage';
-import ChatPage from '../pages/ChatPage';
-import SearchPage from '../pages/SearchPage';
-import PostPage from '../pages/PostPage';
-import NotificationsPage from '../pages/NotificationsPage';
-import SettingsPage from '../pages/SettingsPage';
-import NotFoundPage from '../pages/NotFoundPage';
+import FeedPage from './pages/FeedPage';
+import ProfilePage from './pages/ProfilePage';
+import ChatPage from './pages/ChatPage';
+import SearchPage from './pages/SearchPage';
+import PostPage from './pages/PostPage';
+import NotificationsPage from './pages/NotificationsPage';
+import SettingsPage from './pages/SettingsPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 const App = () => {
   // Get auth state from Redux to handle redirects
