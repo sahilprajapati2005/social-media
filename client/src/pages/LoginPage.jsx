@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { setCredentials } from '../features/auth/authSlice'; // Import the action
-import { useToast } from '../context/ToastContext';
-import GoogleLoginButton from '../features/auth/components/GoogleLoginButton';
-import api from '../utils/axios';
-import { AiOutlineLoading3Quarters } from 'react-icons/ai';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { setCredentials } from "../features/auth/authSlice"; // Import the action
+import { useToast } from "../context/ToastContext";
+import GoogleLoginButton from "../features/auth/components/GoogleLoginButton";
+import api from "../utils/axios";
+import { AiOutlineLoading3Quarters } from "react-icons/ai";
 
 const LoginPage = () => {
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { showToast } = useToast(); // Use 'showToast', not 'addToast'
-  
+
   // Redirect if already logged in
   const { isAuthenticated } = useSelector((state) => state.auth);
   useEffect(() => {
-    if (isAuthenticated) navigate('/');
+    if (isAuthenticated) navigate("/");
   }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => {
@@ -31,27 +31,28 @@ const LoginPage = () => {
 
     try {
       // 1. Call API
-      const { data } = await api.post('/auth/login', formData);
+      const { data } = await api.post("/auth/login", formData);
 
       // 🔍 DEBUG: Check Console (F12) to ensure 'token' exists in response
-      console.log("Server Login Response:", data); 
+      console.log("Server Login Response:", data);
 
       // 2. Dispatch to Redux (Triggering the save to localStorage)
-      dispatch(setCredentials({ 
-        user: data.user, 
-        token: data.token 
-      }));
+      dispatch(
+        setCredentials({
+          user: data.user,
+          token: data.token,
+        })
+      );
 
       // 3. Success Feedback
-      showToast('Login Successful!', 'success');
-      
-      // Navigation happens automatically via the useEffect above 
+      showToast("Login Successful!", "success");
+
+      // Navigation happens automatically via the useEffect above
       // once isAuthenticated becomes true
-      
     } catch (error) {
       console.error("Login Error:", error);
-      const errorMsg = error.response?.data?.message || 'Login failed';
-      showToast(errorMsg, 'error');
+      const errorMsg = error.response?.data?.message || "Login failed";
+      showToast(errorMsg, "error");
     } finally {
       setIsLoading(false);
     }
@@ -60,9 +61,10 @@ const LoginPage = () => {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md space-y-8 rounded-2xl bg-white p-8 shadow-xl">
-        
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-gray-900">Welcome Back</h2>
+          <h2 className="text-3xl font-extrabold text-gray-900">
+            Welcome Back
+          </h2>
           <p className="mt-2 text-sm text-gray-600">
             Sign in to connect with your friends
           </p>
@@ -71,7 +73,10 @@ const LoginPage = () => {
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email Address
               </label>
               <input
@@ -87,7 +92,10 @@ const LoginPage = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <input
@@ -101,7 +109,10 @@ const LoginPage = () => {
                 placeholder="••••••••"
               />
               <div className="flex justify-end mt-1">
-                <Link to="/forgot-password" className="text-sm font-medium text-blue-600 hover:text-blue-500">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                >
                   Forgot password?
                 </Link>
               </div>
@@ -116,7 +127,7 @@ const LoginPage = () => {
             {isLoading ? (
               <AiOutlineLoading3Quarters className="animate-spin text-lg" />
             ) : (
-              'Sign In'
+              "Sign In"
             )}
           </button>
         </form>
@@ -126,7 +137,9 @@ const LoginPage = () => {
             <div className="w-full border-t border-gray-200" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="bg-white px-2 text-gray-500">Or continue with</span>
+            <span className="bg-white px-2 text-gray-500">
+              Or continue with
+            </span>
           </div>
         </div>
 
@@ -134,8 +147,11 @@ const LoginPage = () => {
         <GoogleLoginButton />
 
         <p className="mt-4 text-center text-sm text-gray-600">
-          Don't have an account?{' '}
-          <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">
+          Don't have an account?{" "}
+          <Link
+            to="/register"
+            className="font-medium text-blue-600 hover:text-blue-500"
+          >
             Create an account
           </Link>
         </p>

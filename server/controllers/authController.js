@@ -1,4 +1,3 @@
-
 const User = require('../models/User');
 const Otp = require('../models/Otp');
 const generateToken = require('../utils/generateToken');
@@ -18,15 +17,17 @@ const registerUser = async (req, res) => {
         const user = await User.create({ username, email, password });
 
         if (user) {
-            // Generate token (Ensure generateToken returns the token string)
             const token = generateToken(res, user._id);
             
+            // ✅ FIX: Send nested 'user' object so Redux can read it correctly
             res.status(201).json({
-                _id: user._id,
-                username: user.username,
-                email: user.email,
-                profilePicture: user.profilePicture,
-                token: token // Send token for Redux state
+                user: {
+                    _id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    profilePicture: user.profilePicture,
+                },
+                token: token
             });
         } else {
             res.status(400).json({ message: 'Invalid user data' });
@@ -47,13 +48,15 @@ const loginUser = async (req, res) => {
         if (user && (await user.matchPassword(password))) {
             const token = generateToken(res, user._id);
 
-            // ✅ CRITICAL FIX: You must include 'token' here!
+            // ✅ FIX: Send nested 'user' object here too
             res.json({
-                _id: user._id,
-                username: user.username,
-                email: user.email,
-                profilePicture: user.profilePicture,
-                token: token  // <--- IF THIS IS MISSING, LOGIN FAILS
+                user: {
+                    _id: user._id,
+                    username: user.username,
+                    email: user.email,
+                    profilePicture: user.profilePicture,
+                },
+                token: token
             });
         } else {
             res.status(401).json({ message: 'Invalid email or password' });
@@ -77,25 +80,21 @@ const logoutUser = (req, res) => {
 const verifyOtp = async (req, res) => {
     const { email, otp } = req.body;
     try {
-        // 1. Check if OTP exists and matches
         const validOtp = await Otp.findOne({ email, otp });
         if (!validOtp) {
             return res.status(400).json({ message: 'Invalid or expired OTP' });
         }
 
-        // 2. Find the user
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // 3. Clean up: Delete the used OTP
         await Otp.deleteMany({ email });
 
-        // 4. Log the user in (Generate Token)
         const token = generateToken(res, user._id);
 
-        // 5. Send User & Token to Client
+        // This was already correct, but keeping for consistency
         res.status(200).json({
             user: {
                 _id: user._id,
@@ -120,13 +119,10 @@ const forgotPassword = async (req, res) => {
         const user = await User.findOne({ email });
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        // Generate 6-digit OTP
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Save OTP to DB (Expires in 5 mins automatically via Otp model)
         await Otp.create({ email, otp: otpCode });
 
-        // Send Email
         const message = `You requested a password reset. Your OTP is: ${otpCode}. It is valid for 5 minutes.`;
         await sendEmail({
             email: user.email,
@@ -146,23 +142,18 @@ const forgotPassword = async (req, res) => {
 const resetPassword = async (req, res) => {
     const { email, otp, newPassword } = req.body;
     try {
-        // 1. Check if OTP is valid
         const validOtp = await Otp.findOne({ email, otp });
         if (!validOtp) {
             return res.status(400).json({ message: 'Invalid or expired OTP' });
         }
 
-        // 2. Find User
         const user = await User.findOne({ email });
         if (!user) return res.status(404).json({ message: "User not found" });
 
-        // 3. Hash New Password
-        const salt = await bcrypt.genSalt(10);
-        user.password = await bcrypt.hash(newPassword, salt);
+        // ✅ FIX: Do not hash manually. Let the User model pre-save hook handle it.
+        user.password = newPassword; 
         
         await user.save();
-
-        // 4. Delete OTP after successful use
         await Otp.deleteOne({ _id: validOtp._id });
 
         res.status(200).json({ message: 'Password reset successful. You can now login.' });
@@ -177,19 +168,13 @@ const resetPassword = async (req, res) => {
 const resendOtp = async (req, res) => {
   try {
     const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ message: 'Email is required' });
-    }
+    if (!email) return res.status(400).json({ message: 'Email is required' });
 
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Delete existing OTPs to avoid duplicates
     await Otp.deleteMany({ email });
 
     await Otp.create({
@@ -217,7 +202,7 @@ module.exports = {
     registerUser,
     loginUser,
     logoutUser,
-    verifyOtp,     // This is now properly defined
+    verifyOtp,
     forgotPassword,
     resetPassword,
     resendOtp

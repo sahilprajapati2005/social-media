@@ -9,18 +9,35 @@ const initialState = {
 };
 
 // 1. Get Feed Action
-export const getFeed = createAsyncThunk(
-  'feed/getFeed',
-  async (_, thunkAPI) => {
-    try {
-      const response = await api.get('/posts/feed');
-      return response.data;
-    } catch (error) {
-      const message = error.response?.data?.message || error.message;
-      return thunkAPI.rejectWithValue(message);
-    }
+// export const getFeed = createAsyncThunk(
+//   'feed/getFeed',
+//   async (_, thunkAPI) => {
+//     try {
+//       const response = await api.get('/posts/feed');
+//       return response.data;
+//     } catch (error) {
+//       const message = error.response?.data?.message || error.message;
+//       return thunkAPI.rejectWithValue(message);
+//     }
+//   }
+// );
+export const getFeed = createAsyncThunk('feed/getAll', async (_, thunkAPI) => {
+  try {
+    // 1. Get the token from the auth state (Redux)
+    const token = thunkAPI.getState().auth.user.token;
+
+    const config = {
+      headers: {
+        Authorization: `Bearer ${token}`, // Format must match what your backend expects
+      },
+    };
+
+    const response = await axios.get('http://localhost:5000/api/posts/feed', config);
+    return response.data;
+  } catch (error) {
+    return thunkAPI.rejectWithValue(error.response.data.message);
   }
-);
+});
 
 // ✅ 2. NEW: Toggle Like Action
 export const toggleLike = createAsyncThunk(

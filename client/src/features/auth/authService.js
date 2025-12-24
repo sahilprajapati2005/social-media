@@ -1,13 +1,10 @@
-import api from '../../utils/axios';
-
 const login = async (userData) => {
-  const response = await api.post('/auth/login', userData);
+  const response = await axios.post('/api/users/login', userData);
+
+  if (response.data) {
+    // This saves the user object (and their token) to the browser
+    localStorage.setItem('user', JSON.stringify(response.data));
+  }
+
   return response.data;
 };
-
-// You can add register/logout here later
-const authService = {
-  login,
-};
-
-export default authService;

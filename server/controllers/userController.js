@@ -5,6 +5,12 @@ const User = require('../models/User');
 // @access  Private
 const getUserProfile = async (req, res) => {
     try {
+        // ✅ ADD THIS CHECK: Ensure ID is a valid MongoDB ObjectId format
+        // This prevents the "CastError" crash if ID is "undefined" or invalid
+        if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
         const user = await User.findById(req.params.id).select('-password');
         
         if (user) {
@@ -13,6 +19,7 @@ const getUserProfile = async (req, res) => {
             res.status(404).json({ message: 'User not found' });
         }
     } catch (error) {
+        // This catch block will now only handle genuine server errors
         res.status(500).json({ message: error.message });
     }
 };

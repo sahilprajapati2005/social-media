@@ -18,10 +18,13 @@ const getUserFromStorage = () => {
 const token = localStorage.getItem('token');
 const user = getUserFromStorage();
 
+// ✅ FIX 2: Check for "undefined" string to prevent false authentication
+const isValidToken = token && token !== "undefined" && token !== "null";
+
 const initialState = {
   user: user,
-  token: token,
-  isAuthenticated: !!token, // True if token exists
+  token: isValidToken ? token : null,
+  isAuthenticated: !!isValidToken, // Only true if token is valid
   isLoading: false,
   isError: false,
   message: '',
