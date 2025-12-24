@@ -7,7 +7,7 @@ const userSchema = mongoose.Schema(
             type: String,
             required: true,
             unique: true,
-            trim: true, // Removes whitespace from ends
+            trim: true,
         },
         email: {
             type: String,
@@ -24,9 +24,27 @@ const userSchema = mongoose.Schema(
             minlength: 6,
         },
         profilePicture: {
-            type: String, // URL to Cloudinary
+            type: String,
             default: "https://icon-library.com/images/anonymous-avatar-icon/anonymous-avatar-icon-25.jpg",
         },
+        // --- ADDED MISSING FIELDS ---
+        coverPicture: {
+            type: String,
+            default: "",
+        },
+        city: {
+            type: String,
+            maxLength: 50,
+        },
+        from: {
+            type: String,
+            maxLength: 50,
+        },
+        relationship: {
+            type: String,
+            enum: ['', 'Single', 'In a Relationship', 'Married'],
+        },
+        // ---------------------------
         bio: {
             type: String,
             default: "Hello! I am new here.",
@@ -46,20 +64,16 @@ const userSchema = mongoose.Schema(
         ],
     },
     {
-        timestamps: true, // Automatically creates 'createdAt' and 'updatedAt' fields
+        timestamps: true,
     }
 );
 
 // Middleware: Encrypt password using bcrypt before saving to DB
 userSchema.pre('save', async function (next) {
-    // If password is not modified (e.g., updating bio only), skip hashing
     if (!this.isModified('password')) {
         next();
     }
-
-    // Generate a "salt" (random data to make hash unique)
     const salt = await bcrypt.genSalt(10);
-    // Hash the password
     this.password = await bcrypt.hash(this.password, salt);
 });
 

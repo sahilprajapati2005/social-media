@@ -1,3 +1,4 @@
+
 const User = require('../models/User');
 const Otp = require('../models/Otp');
 const generateToken = require('../utils/generateToken');
@@ -45,13 +46,14 @@ const loginUser = async (req, res) => {
 
         if (user && (await user.matchPassword(password))) {
             const token = generateToken(res, user._id);
-            
+
+            // ✅ CRITICAL FIX: You must include 'token' here!
             res.json({
                 _id: user._id,
                 username: user.username,
                 email: user.email,
                 profilePicture: user.profilePicture,
-                token: token
+                token: token  // <--- IF THIS IS MISSING, LOGIN FAILS
             });
         } else {
             res.status(401).json({ message: 'Invalid email or password' });

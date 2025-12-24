@@ -2,12 +2,9 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { AiOutlineSend, AiOutlineArrowLeft } from 'react-icons/ai';
 
-// API & Hooks
 import api from '../utils/axios';
-import useSocket from '../hooks/useSocket';            // 1. Global Connection
-import useChatSocket from '../features/chat/useSocket'; // 2. Chat Logic (Send/Receive)
-
-// Components
+import useSocket from '../hooks/useSocket';
+import useChatSocket from '../features/chat/useSocket';
 import Conversation from '../features/chat/components/Conversation';
 import Message from '../features/chat/components/Message';
 import Avatar from '../components/ui/Avatar';
@@ -23,15 +20,14 @@ const ChatPage = () => {
   const [newMessage, setNewMessage] = useState("");
   const [chatFriend, setChatFriend] = useState(null);
 
-  // --- SOCKET INTEGRATION ---
-  // 1. Get the active socket connection and online users list
+  // --- SOCKETS ---
   const { socket, onlineUsers } = useSocket();
-
-  // 2. Use the Chat Hook to handle sending/receiving logic
-  // Note: We don't need to manually listen for 'getMessage' here because 
-  // useChatSocket handles that and updates Redux (if you are using Redux for messages).
-  // If you are using local state for messages (like below), we can use the hook's helper functions.
   const { sendMessage } = useChatSocket(socket);
+
+  // ✅ FIX: STOP HERE if user is null. This prevents the crash.
+  if (!user) {
+    return <div className="p-10 text-center">Loading chat...</div>;
+  }
 
   // --- EFFECTS ---
 
@@ -39,14 +35,19 @@ const ChatPage = () => {
   useEffect(() => {
     const getConversations = async () => {
       try {
+        // Now this line is safe because we checked if user exists above
         const res = await api.get('/conversations/' + user._id);
         setConversations(res.data);
       } catch (err) {
         console.error(err);
       }
     };
-    getConversations();
-  }, [user._id]);
+    if (user) { // Double check inside effect just to be safe
+        getConversations();
+    }
+  }, [user]); // Changed dependency to whole user object
+
+  // ... (Rest of your code remains exactly the same) ...
 
   // 2. Fetch Messages when Chat Selected
   useEffect(() => {
@@ -62,7 +63,7 @@ const ChatPage = () => {
     getMessages();
   }, [currentChat]);
 
-  // 3. Fetch Friend Details for Header
+  // 3. Fetch Friend Details
   useEffect(() => {
     const getFriendDetails = async () => {
       if (!currentChat) return;
@@ -74,16 +75,15 @@ const ChatPage = () => {
         console.error(err);
       }
     };
-    getFriendDetails();
-  }, [currentChat, user._id]);
+    if (currentChat) {
+        getFriendDetails();
+    }
+  }, [currentChat, user]);
 
-  // 4. Handle Incoming Messages (Local State Update)
-  // Even though Redux handles it globally, we often update local state for immediate feedback
+  // 4. Socket Incoming
   useEffect(() => {
     if (!socket) return;
-    
     const handleIncomingMessage = (data) => {
-      // Only add message if it belongs to the CURRENT open chat
       if (currentChat?.members.includes(data.senderId)) {
         setMessages((prev) => [...prev, {
           sender: data.senderId,
@@ -92,53 +92,44 @@ const ChatPage = () => {
         }]);
       }
     };
-
     socket.on("getMessage", handleIncomingMessage);
-
     return () => {
       socket.off("getMessage", handleIncomingMessage);
     };
   }, [socket, currentChat]);
 
-  // 5. Auto Scroll
+  // 5. Scroll
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
 
-  // --- HANDLERS ---
-
+  // --- HANDLER ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
 
     const receiverId = currentChat.members.find((member) => member !== user._id);
 
-    // 1. Send via Socket (Instant UI update for receiver)
     sendMessage({
       senderId: user._id,
       receiverId,
       text: newMessage,
     });
 
-    // 2. Send to Database (Persistence)
     try {
       const res = await api.post("/messages", {
         conversationId: currentChat._id,
         sender: user._id,
         text: newMessage,
       });
-      
-      // Update local UI immediately
       setMessages([...messages, res.data]);
       setNewMessage("");
-      
     } catch (err) {
       console.error(err);
     }
   };
 
-  // --- RENDER ---
   return (
     <div className="flex h-[calc(100vh-80px)] overflow-hidden rounded-xl bg-white shadow-sm border border-gray-200">
       
@@ -158,7 +149,7 @@ const ChatPage = () => {
               <Conversation 
                 conversation={c} 
                 currentUserId={user._id} 
-                onlineUsers={onlineUsers} // Now passing real online users!
+                onlineUsers={onlineUsers} 
               />
             </div>
           ))}
@@ -179,7 +170,6 @@ const ChatPage = () => {
               <Avatar src={chatFriend?.profilePicture} size="sm" />
               <div>
                 <span className="block font-bold text-gray-900">{chatFriend?.username || "Loading..."}</span>
-                {/* Check if friend is online */}
                 {onlineUsers.some(u => u.userId === chatFriend?._id) ? (
                    <span className="block text-xs text-green-500 font-medium">Online</span> 
                 ) : (

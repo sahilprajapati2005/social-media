@@ -12,7 +12,8 @@ const EditProfileModal = ({ onClose }) => {
 
   const [formData, setFormData] = useState({
     username: user?.username || '',
-    bio: user?.desc || '',
+    // CHANGED: Use 'bio' instead of 'desc' to match the database
+    bio: user?.bio || '', 
     city: user?.city || '',
     from: user?.from || '',
     relationship: user?.relationship || '',
@@ -41,7 +42,10 @@ const EditProfileModal = ({ onClose }) => {
     const data = new FormData();
     data.append('userId', user._id);
     data.append('username', formData.username);
-    data.append('desc', formData.bio);
+    
+    // CHANGED: Send 'bio' to the backend
+    data.append('bio', formData.bio);
+    
     data.append('city', formData.city);
     data.append('from', formData.from);
     data.append('relationship', formData.relationship);
@@ -50,12 +54,11 @@ const EditProfileModal = ({ onClose }) => {
     if (coverImage) data.append('coverPicture', coverImage);
 
     try {
-      const res = await api.put(`/users/${user._id}`, data, {
+      const res = await api.put(`/users/profile`, data, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
       // Update Redux Store with new user data
-      // Note: We keep the existing token
       const token = localStorage.getItem('token'); 
       dispatch(setCredentials({ user: res.data, token }));
 
@@ -76,7 +79,7 @@ const EditProfileModal = ({ onClose }) => {
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4">
           <h2 className="text-xl font-bold text-gray-800">Edit Profile</h2>
-          <button onClick={onClose} className="rounded-full p-1 hover:bg-gray-100">
+          <button onClick={onClose} className="rounded-full p-1 hover:bg-gray-100 transition">
             <AiOutlineClose className="text-xl" />
           </button>
         </div>
@@ -95,7 +98,7 @@ const EditProfileModal = ({ onClose }) => {
                     alt="profile prev" 
                     className="h-16 w-16 rounded-full object-cover border border-gray-200"
                   />
-                  <label className="cursor-pointer rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200">
+                  <label className="cursor-pointer rounded-md bg-gray-100 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-200 transition">
                     Change
                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'profile')} />
                   </label>
@@ -104,14 +107,14 @@ const EditProfileModal = ({ onClose }) => {
 
               <div>
                 <label className="mb-2 block text-sm font-semibold text-gray-700">Cover Image</label>
-                <div className="relative h-24 w-full rounded-lg bg-gray-100 overflow-hidden border border-gray-200">
+                <div className="relative h-24 w-full rounded-lg bg-gray-100 overflow-hidden border border-gray-200 group">
                   <img 
                     src={coverImage ? URL.createObjectURL(coverImage) : (user.coverPicture || "https://via.placeholder.com/800x200")} 
                     alt="cover prev" 
                     className="h-full w-full object-cover"
                   />
-                  <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 cursor-pointer opacity-0 hover:opacity-100 transition">
-                    <AiFillCamera className="text-2xl text-white" />
+                  <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30 cursor-pointer opacity-0 group-hover:opacity-100 transition duration-200">
+                    <AiFillCamera className="text-3xl text-white drop-shadow-md" />
                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'cover')} />
                   </label>
                 </div>
@@ -126,18 +129,18 @@ const EditProfileModal = ({ onClose }) => {
                 name="username"
                 value={formData.username}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:outline-none"
+                className="mt-1 block w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
               />
             </div>
             
             <div>
               <label className="block text-sm font-medium text-gray-700">Bio</label>
               <textarea
-                name="bio"
+                name="bio" // Changed from bio to desc in older versions, now confirmed 'bio'
                 rows="3"
                 value={formData.bio}
                 onChange={handleChange}
-                className="mt-1 block w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:outline-none"
+                className="mt-1 block w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                 placeholder="Describe yourself..."
               />
             </div>
@@ -150,7 +153,7 @@ const EditProfileModal = ({ onClose }) => {
                   name="city"
                   value={formData.city}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:outline-none"
+                  className="mt-1 block w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                 />
               </div>
               <div>
@@ -160,7 +163,7 @@ const EditProfileModal = ({ onClose }) => {
                   name="from"
                   value={formData.from}
                   onChange={handleChange}
-                  className="mt-1 block w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:outline-none"
+                  className="mt-1 block w-full rounded-md border border-gray-300 p-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                 />
               </div>
             </div>
@@ -171,7 +174,7 @@ const EditProfileModal = ({ onClose }) => {
                  name="relationship" 
                  value={formData.relationship}
                  onChange={handleChange}
-                 className="mt-1 block w-full rounded-md border border-gray-300 p-2 bg-white focus:border-blue-500 focus:outline-none"
+                 className="mt-1 block w-full rounded-md border border-gray-300 p-2 bg-white focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition"
                >
                  <option value="">Select...</option>
                  <option value="Single">Single</option>
@@ -187,7 +190,8 @@ const EditProfileModal = ({ onClose }) => {
         <div className="flex justify-end gap-3 border-t bg-gray-50 px-6 py-4">
           <button 
             onClick={onClose}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 hover:bg-gray-50"
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 hover:bg-gray-100 transition"
+            type="button"
           >
             Cancel
           </button>
@@ -195,7 +199,7 @@ const EditProfileModal = ({ onClose }) => {
             form="edit-profile-form"
             type="submit"
             disabled={loading}
-            className="rounded-lg bg-blue-600 px-6 py-2 font-semibold text-white hover:bg-blue-700 disabled:bg-blue-300"
+            className="rounded-lg bg-blue-600 px-6 py-2 font-semibold text-white hover:bg-blue-700 disabled:bg-blue-300 transition"
           >
             {loading ? 'Saving...' : 'Save Changes'}
           </button>

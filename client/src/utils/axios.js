@@ -1,18 +1,21 @@
 import axios from 'axios';
-import { logout } from '../features/auth/authSlice'; // Safe to import (no circular dep)
+import { logout } from '../features/auth/authSlice'; // Adjust path to your authSlice
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
+// 1. Create an Axios instance (Use this throughout your app instead of default axios)
+const axiosInstance = axios.create({
+  baseURL: 'http://localhost:5000/api', // Your Backend URL
   headers: {
     'Content-Type': 'application/json',
   },
 });
 
-// Export a function to setup interceptors with the store
+// 2. Setup Interceptors Function
 export const setupInterceptors = (store) => {
-  api.interceptors.request.use(
+  
+  // Request Interceptor: Attach Token
+  axiosInstance.interceptors.request.use(
     (config) => {
-      const token = store.getState().auth.token;
+      const token = store.getState().auth.token; // Access token from Redux
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -21,16 +24,17 @@ export const setupInterceptors = (store) => {
     (error) => Promise.reject(error)
   );
 
-  api.interceptors.response.use(
+  // Response Interceptor: Handle Errors (like 401 Unauthorized)
+  axiosInstance.interceptors.response.use(
     (response) => response,
     (error) => {
+      // If token is expired or invalid (401)
       if (error.response && error.response.status === 401) {
-        store.dispatch(logout());
-        window.location.href = '/login';
+        store.dispatch(logout()); // Trigger Redux logout action
       }
       return Promise.reject(error);
     }
   );
 };
 
-export default api;
+export default axiosInstance;

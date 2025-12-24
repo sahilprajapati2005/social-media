@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { setCredentials } from '../features/auth/authSlice';
-import { useToast } from '../context/ToastContext'; // Custom Toast Hook
+import { setCredentials } from '../features/auth/authSlice'; // Import the action
+import { useToast } from '../context/ToastContext';
 import GoogleLoginButton from '../features/auth/components/GoogleLoginButton';
 import api from '../utils/axios';
 import { AiOutlineLoading3Quarters } from 'react-icons/ai';
@@ -13,7 +13,7 @@ const LoginPage = () => {
   
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { addToast } = useToast();
+  const { showToast } = useToast(); // Use 'showToast', not 'addToast'
   
   // Redirect if already logged in
   const { isAuthenticated } = useSelector((state) => state.auth);
@@ -30,22 +30,28 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      // 1. API Call
+      // 1. Call API
       const { data } = await api.post('/auth/login', formData);
 
-      // 2. Update Redux State & LocalStorage
+      // 🔍 DEBUG: Check Console (F12) to ensure 'token' exists in response
+      console.log("Server Login Response:", data); 
+
+      // 2. Dispatch to Redux (Triggering the save to localStorage)
       dispatch(setCredentials({ 
         user: data.user, 
         token: data.token 
       }));
 
-      // 3. Success Feedback & Redirect
-      addToast('Login Successful!', 'success');
-      navigate('/');
+      // 3. Success Feedback
+      showToast('Login Successful!', 'success');
+      
+      // Navigation happens automatically via the useEffect above 
+      // once isAuthenticated becomes true
       
     } catch (error) {
-      const errorMsg = error.response?.data?.message || 'Something went wrong';
-      addToast(errorMsg, 'error');
+      console.error("Login Error:", error);
+      const errorMsg = error.response?.data?.message || 'Login failed';
+      showToast(errorMsg, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +61,6 @@ const LoginPage = () => {
     <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
       <div className="w-full max-w-md space-y-8 rounded-2xl bg-white p-8 shadow-xl">
         
-        {/* Header */}
         <div className="text-center">
           <h2 className="text-3xl font-extrabold text-gray-900">Welcome Back</h2>
           <p className="mt-2 text-sm text-gray-600">
@@ -63,7 +68,6 @@ const LoginPage = () => {
           </p>
         </div>
 
-        {/* Form */}
         <form className="mt-8 space-y-6" onSubmit={handleLogin}>
           <div className="space-y-4">
             <div>
@@ -107,7 +111,7 @@ const LoginPage = () => {
           <button
             type="submit"
             disabled={isLoading}
-            className="group relative flex w-full justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:bg-blue-400"
+            className="group relative flex w-full justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-blue-400"
           >
             {isLoading ? (
               <AiOutlineLoading3Quarters className="animate-spin text-lg" />
@@ -126,10 +130,9 @@ const LoginPage = () => {
           </div>
         </div>
 
-        {/* Google Button */}
+        {/* Ensure this component exists or comment it out */}
         <GoogleLoginButton />
 
-        {/* Footer Link */}
         <p className="mt-4 text-center text-sm text-gray-600">
           Don't have an account?{' '}
           <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500">

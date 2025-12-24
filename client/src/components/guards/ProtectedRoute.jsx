@@ -1,16 +1,26 @@
 import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { AiOutlineLoading3Quarters } from 'react-icons/ai';
 
 const ProtectedRoute = () => {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, isLoading } = useSelector((state) => state.auth);
 
-  // If not authenticated, redirect to Login
+  // Optional: Show loading spinner while checking auth state
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <AiOutlineLoading3Quarters className="animate-spin text-4xl text-blue-600" />
+      </div>
+    );
+  }
+
+  // If not logged in, redirect to login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // If authenticated, render child routes (via Outlet)
+  // If logged in, render the child route (Outlet)
   return <Outlet />;
 };
 

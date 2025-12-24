@@ -7,15 +7,14 @@ import api from '../utils/axios';
 // Components
 import PostCard from '../features/feed/components/PostCard';
 import FollowListModal from '../features/profile/components/FollowListModal';
-import EditProfileModal from '../features/profile/components/EditProfileModal'; // Imported
+import EditProfileModal from '../features/profile/components/EditProfileModal';
 import Spinner from '../components/ui/Spinner';
 import Avatar from '../components/ui/Avatar'; 
-import { AiFillCamera } from 'react-icons/ai';
 
 const ProfilePage = () => {
   const { userId } = useParams(); 
   const { user: currentUser } = useSelector((state) => state.auth);
-  const { addToast } = useToast();
+  const { showToast } = useToast();
   
   // Local State
   const [profileUser, setProfileUser] = useState(null);
@@ -26,18 +25,24 @@ const ProfilePage = () => {
   // Modal States
   const [showFollowModal, setShowFollowModal] = useState(false);
   const [followModalType, setFollowModalType] = useState('followers');
-  const [showEditModal, setShowEditModal] = useState(false); // Edit Modal State
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Determine if viewing own profile
+  // If no userId param is present, or it is 'me', or matches current user's ID
   const isOwnProfile = !userId || userId === 'me' || userId === currentUser?._id;
+  
+  // ✅ SAFETY CHECK: If we are logged in, use our ID. If checking someone else, use param.
   const idToFetch = isOwnProfile ? currentUser?._id : userId;
 
   useEffect(() => {
     const fetchProfileData = async () => {
+      // ✅ 1. GUARD CLAUSE: Stop if ID is missing or "undefined" string
+      if (!idToFetch || idToFetch === 'undefined' || idToFetch === 'null') {
+        return; 
+      }
+
       setLoading(true);
       try {
-        if (!idToFetch) return;
-
         const [userRes, postsRes] = await Promise.all([
           api.get(`/users/${idToFetch}`),
           api.get(`/posts/profile/${idToFetch}`)
@@ -46,26 +51,29 @@ const ProfilePage = () => {
         setProfileUser(userRes.data);
         setPosts(postsRes.data);
         
+        // Check if we follow this user
         if (currentUser && userRes.data) {
-          setIsFollowing(currentUser.following.includes(userRes.data._id));
+          setIsFollowing(currentUser.following?.includes(userRes.data._id));
         }
 
       } catch (error) {
         console.error("Profile load failed", error);
-        addToast("Failed to load profile", "error");
+        // Only show toast if it is NOT a 404 (prevents spam on page load)
+        if (error.response?.status !== 404) {
+             showToast("Failed to load profile", "error");
+        }
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfileData();
-    // Refresh when userId changes or when user edits profile (detected via modal close logic if needed)
-  }, [idToFetch, currentUser, addToast, showEditModal]); 
+  }, [idToFetch, currentUser, showToast, showEditModal]); // Re-fetch when edit modal closes
 
   const handleFollowToggle = async () => {
     if (isOwnProfile) return;
 
-    // Optimistic Update
+    // Optimistic UI Update
     setIsFollowing((prev) => !prev);
     setProfileUser((prev) => ({
       ...prev,
@@ -81,8 +89,8 @@ const ProfilePage = () => {
         await api.put(`/users/${profileUser._id}/follow`);
       }
     } catch (error) {
-      setIsFollowing((prev) => !prev); // Revert
-      addToast("Action failed", "error");
+      setIsFollowing((prev) => !prev); // Revert on failure
+      showToast("Action failed", "error");
     }
   };
 
@@ -91,7 +99,10 @@ const ProfilePage = () => {
     setShowFollowModal(true);
   };
 
-  if (loading) return <div className="mt-10"><Spinner size="lg" /></div>;
+  // --- RENDER HELPERS ---
+  if (loading) return <div className="mt-10 flex justify-center"><Spinner size="lg" /></div>;
+  
+  // If loading finished but no user found
   if (!profileUser) return <div className="p-10 text-center text-gray-500">User not found.</div>;
 
   return (
@@ -101,12 +112,16 @@ const ProfilePage = () => {
         
         {/* Cover Image */}
         <div className="h-48 w-full bg-gradient-to-r from-blue-400 to-purple-500 md:h-64 rounded-b-lg overflow-hidden relative">
-          {profileUser.coverPicture && (
+          {profileUser.coverPicture ? (
             <img 
               src={profileUser.coverPicture} 
               alt="Cover" 
               className="h-full w-full object-cover" 
             />
+          ) : (
+            <div className="h-full w-full bg-gray-300 flex items-center justify-center text-gray-500">
+              {/* Empty state for cover */}
+            </div>
           )}
         </div>
 
@@ -126,8 +141,8 @@ const ProfilePage = () => {
             <div className="mt-4 flex gap-3 md:mb-4 md:mt-0">
               {isOwnProfile ? (
                 <button 
-                  onClick={() => setShowEditModal(true)} // Opens the modal
-                  className="rounded-full border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-50"
+                  onClick={() => setShowEditModal(true)}
+                  className="rounded-full border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-50 transition"
                 >
                   Edit Profile
                 </button>
@@ -144,8 +159,8 @@ const ProfilePage = () => {
                     {isFollowing ? 'Unfollow' : 'Follow'}
                   </button>
                   <Link 
-                    to="/chat"
-                    className="rounded-full border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-50"
+                    to={`/chat/${profileUser._id}`}
+                    className="rounded-full border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-50 transition"
                   >
                     Message
                   </Link>
@@ -158,9 +173,10 @@ const ProfilePage = () => {
           <div className="mt-4 text-center md:text-left">
             <h1 className="text-2xl font-bold text-gray-900">{profileUser.username}</h1>
             <p className="text-sm text-gray-500">{profileUser.email}</p>
-            {profileUser.desc && (
+            
+            {profileUser.bio && (
               <p className="mt-2 max-w-2xl text-gray-700 whitespace-pre-line">
-                {profileUser.desc}
+                {profileUser.bio}
               </p>
             )}
             
@@ -173,12 +189,12 @@ const ProfilePage = () => {
 
           {/* Stats Bar */}
           <div className="mt-6 flex justify-center gap-8 border-t border-gray-100 pt-4 md:justify-start">
-            <button onClick={() => openFollowModal('following')} className="flex flex-col items-center hover:opacity-75">
-              <span className="font-bold text-gray-900">{profileUser.following.length}</span>
+            <button onClick={() => openFollowModal('following')} className="flex flex-col items-center hover:opacity-75 transition">
+              <span className="font-bold text-gray-900">{profileUser.following?.length || 0}</span>
               <span className="text-sm text-gray-500">Following</span>
             </button>
-            <button onClick={() => openFollowModal('followers')} className="flex flex-col items-center hover:opacity-75">
-              <span className="font-bold text-gray-900">{profileUser.followers.length}</span>
+            <button onClick={() => openFollowModal('followers')} className="flex flex-col items-center hover:opacity-75 transition">
+              <span className="font-bold text-gray-900">{profileUser.followers?.length || 0}</span>
               <span className="text-sm text-gray-500">Followers</span>
             </button>
             <div className="flex flex-col items-center">

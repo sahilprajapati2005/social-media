@@ -1,69 +1,82 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import feedApi from './feedApi';
-
-// --- Async Thunks ---
-
-// 1. Fetch Feed
-export const fetchFeed = createAsyncThunk('feed/fetchFeed', async (_, { rejectWithValue }) => {
-  try {
-    const response = await feedApi.getFeed();
-    return response.data;
-  } catch (error) {
-    return rejectWithValue(error.response.data);
-  }
-});
-
-// 2. Toggle Like (This was missing)
-export const toggleLike = createAsyncThunk('feed/toggleLike', async (postId, { rejectWithValue }) => {
-  try {
-    const response = await feedApi.toggleLike(postId);
-    return response.data; // Expecting the backend to return the updated post
-  } catch (error) {
-    return rejectWithValue(error.response.data);
-  }
-});
-
-// --- Slice Definition ---
+import api from '../../utils/axios';
 
 const initialState = {
   posts: [],
-  loading: false,
-  error: null,
+  isLoading: false,
+  isError: false,
+  message: '',
 };
 
-const feedSlice = createSlice({
+// 1. Get Feed Action
+export const getFeed = createAsyncThunk(
+  'feed/getFeed',
+  async (_, thunkAPI) => {
+    try {
+      const response = await api.get('/posts/feed');
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.message || error.message;
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+// ✅ 2. NEW: Toggle Like Action
+export const toggleLike = createAsyncThunk(
+  'feed/toggleLike',
+  async (postId, thunkAPI) => {
+    try {
+      // Assumes backend route is PUT /api/posts/:id/like
+      const response = await api.put(`/posts/${postId}/like`);
+      
+      // Return the postId so we know which post to update in the state
+      // Return the new likes array (or count) from the server
+      return { postId, likes: response.data }; 
+    } catch (error) {
+      const message = error.response?.data?.message || error.message;
+      return thunkAPI.rejectWithValue(message);
+    }
+  }
+);
+
+export const feedSlice = createSlice({
   name: 'feed',
   initialState,
   reducers: {
-    // Optional: Synchronous actions if needed
+    resetFeed: (state) => {
+      state.isLoading = false;
+      state.isError = false;
+      state.message = '';
+    },
   },
   extraReducers: (builder) => {
     builder
-      // Handle Fetch Feed
-      .addCase(fetchFeed.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      // --- Get Feed Cases ---
+      .addCase(getFeed.pending, (state) => {
+        state.isLoading = true;
       })
-      .addCase(fetchFeed.fulfilled, (state, action) => {
-        state.loading = false;
-        state.posts = action.payload;
+      .addCase(getFeed.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.posts = action.payload; // Assuming payload is the array of posts
       })
-      .addCase(fetchFeed.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload || 'Failed to fetch feed';
+      .addCase(getFeed.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.message = action.payload;
       })
 
-      // Handle Toggle Like (Update the specific post in the list)
+      // --- ✅ NEW: Toggle Like Cases ---
       .addCase(toggleLike.fulfilled, (state, action) => {
-        // Assuming the backend returns the *updated post object* in action.payload
-        const updatedPost = action.payload;
-        const index = state.posts.findIndex((post) => post._id === updatedPost._id);
-        
-        if (index !== -1) {
-          state.posts[index] = updatedPost;
+        // Find the post that was liked and update its likes array
+        const { postId, likes } = action.payload;
+        const post = state.posts.find((p) => p._id === postId);
+        if (post) {
+          post.likes = likes; // Update the likes immediately in the UI
         }
       });
   },
 });
 
+export const { resetFeed } = feedSlice.actions;
 export default feedSlice.reducer;

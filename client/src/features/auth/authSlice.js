@@ -1,17 +1,33 @@
 import { createSlice } from '@reduxjs/toolkit';
 
-// Helper to read from local storage safely
+// --- Helper to Safely Parse User from LocalStorage ---
+const getUserFromStorage = () => {
+  try {
+    const user = localStorage.getItem('user');
+    if (!user || user === "undefined" || user === "null") {
+      return null;
+    }
+    return JSON.parse(user);
+  } catch (error) {
+    console.error("Error parsing user data:", error);
+    return null;
+  }
+};
+
+// Initialize State
 const token = localStorage.getItem('token');
-const user = JSON.parse(localStorage.getItem('user') || 'null');
+const user = getUserFromStorage();
 
 const initialState = {
   user: user,
   token: token,
-  isAuthenticated: !!token,
-  loading: false,
+  isAuthenticated: !!token, // True if token exists
+  isLoading: false,
+  isError: false,
+  message: '',
 };
 
-const authSlice = createSlice({
+export const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
@@ -21,6 +37,7 @@ const authSlice = createSlice({
       state.token = token;
       state.isAuthenticated = true;
       
+      // Save to Local Storage
       localStorage.setItem('user', JSON.stringify(user));
       localStorage.setItem('token', token);
     },
@@ -31,11 +48,8 @@ const authSlice = createSlice({
       localStorage.removeItem('user');
       localStorage.removeItem('token');
     },
-    setLoading: (state, action) => {
-      state.loading = action.payload;
-    }
   },
 });
 
-export const { setCredentials, logout, setLoading } = authSlice.actions;
+export const { setCredentials, logout } = authSlice.actions;
 export default authSlice.reducer;

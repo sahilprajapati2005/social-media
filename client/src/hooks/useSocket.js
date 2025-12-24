@@ -1,33 +1,36 @@
-import { useEffect, useRef } from 'react';
-import { io } from 'socket.io-client';
+import { useEffect, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
+import { io } from 'socket.io-client';
 
 const useSocket = () => {
-  const socket = useRef(null);
   const { user } = useSelector((state) => state.auth);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+  const socket = useRef(null);
 
   useEffect(() => {
-    if (user && !socket.current) {
-      // Connect to backend socket
-      socket.current = io(import.meta.env.VITE_API_URL || 'http://localhost:5000', {
-        transports: ['websocket'],
-        query: { userId: user._id },
-      });
+    // Only connect if user is logged in
+    if (user) {
+      // Initialize Socket (Change port to 8900 or whatever your socket server runs on)
+      socket.current = io("ws://localhost:8900"); 
 
-      socket.current.on('connect', () => {
-        console.log('Socket Connected:', socket.current.id);
+      // Send logged-in user ID to socket server
+      socket.current.emit("addUser", user._id);
+
+      // Listen for online users list
+      socket.current.on("getUsers", (users) => {
+        setOnlineUsers(users);
       });
     }
 
+    // Cleanup on logout/unmount
     return () => {
       if (socket.current) {
         socket.current.disconnect();
-        socket.current = null;
       }
     };
   }, [user]);
 
-  return socket.current;
+  return { socket: socket.current, onlineUsers };
 };
 
 export default useSocket;

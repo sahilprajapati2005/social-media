@@ -26,8 +26,15 @@ const updateUserProfile = async (req, res) => {
 
         if (user) {
             user.username = req.body.username || user.username;
-            user.bio = req.body.bio || user.bio;
+            user.bio = req.body.bio || user.bio; // Ensure this matches what frontend sends
             user.profilePicture = req.body.profilePicture || user.profilePicture;
+            
+            // --- ADD THESE UPDATES ---
+            user.coverPicture = req.body.coverPicture || user.coverPicture;
+            user.city = req.body.city || user.city;
+            user.from = req.body.from || user.from;
+            user.relationship = req.body.relationship || user.relationship;
+            // ------------------------
 
             if (req.body.password) {
                 user.password = req.body.password;
@@ -41,6 +48,12 @@ const updateUserProfile = async (req, res) => {
                 email: updatedUser.email,
                 bio: updatedUser.bio,
                 profilePicture: updatedUser.profilePicture,
+                coverPicture: updatedUser.coverPicture,
+                city: updatedUser.city,
+                from: updatedUser.from,
+                relationship: updatedUser.relationship,
+                followers: updatedUser.followers,
+                following: updatedUser.following,
             });
         } else {
             res.status(404).json({ message: 'User not found' });
