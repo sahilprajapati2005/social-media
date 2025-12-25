@@ -76,16 +76,20 @@ const Comments = ({ postId }) => {
         ) : (
           comments.map((comment) => (
             <div key={comment._id} className="flex gap-3">
-              <Link to={`/profile/${comment.userId}`}>
-                <Avatar src={comment.userProfilePic} size="sm" />
-              </Link>
-              <div className="flex flex-col">
-                <div className="rounded-2xl bg-gray-100 px-3 py-2">
-                  <Link to={`/profile/${comment.userId}`} className="block text-xs font-bold text-gray-900 hover:underline">
-                    {comment.username}
-                  </Link>
-                  <p className="text-sm text-gray-800">{comment.text}</p>
-                </div>
+
+
+             <Link to={`/profile/${comment.user?._id}`}>
+  <Avatar src={comment.user?.profilePicture} size="sm" />
+</Link>
+<div className="flex flex-col">
+  <div className="rounded-2xl bg-gray-100 px-3 py-2">
+    <Link to={`/profile/${comment.user?._id}`} className="block text-xs font-bold text-gray-900 hover:underline">
+      {comment.user?.username}
+    </Link>
+    <p className="text-sm text-gray-800">{comment.text}</p>
+  </div>
+
+
                 <span className="ml-2 mt-1 text-xs text-gray-500">
                   {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
                 </span>
