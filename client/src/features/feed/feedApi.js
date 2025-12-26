@@ -8,7 +8,7 @@ export const getSinglePost = (postId) => api.get(`/posts/${postId}`);
 // Create & Delete
 export const createPost = (formData) => api.post('/posts', formData, {
   headers: {
-    'Content-Type': 'multipart/form-data', // Essential for file uploads
+    'Content-Type': 'multipart/form-data', 
   },
 });
 export const deletePost = (postId) => api.delete(`/posts/${postId}`);

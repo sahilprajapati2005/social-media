@@ -9,46 +9,30 @@ const initialState = {
 };
 
 // 1. Get Feed Action
-// export const getFeed = createAsyncThunk(
-//   'feed/getFeed',
-//   async (_, thunkAPI) => {
-//     try {
-//       const response = await api.get('/posts/feed');
-//       return response.data;
-//     } catch (error) {
-//       const message = error.response?.data?.message || error.message;
-//       return thunkAPI.rejectWithValue(message);
-//     }
-//   }
-// );
-export const getFeed = createAsyncThunk('feed/getAll', async (_, thunkAPI) => {
-  try {
-    // 1. Get the token from the auth state (Redux)
-    const token = thunkAPI.getState().auth.user.token;
-
-    const config = {
-      headers: {
-        Authorization: `Bearer ${token}`, // Format must match what your backend expects
-      },
-    };
-
-    const response = await axios.get('http://localhost:5000/api/posts/feed', config)
-    return response.data;
-  } catch (error) {
-    return thunkAPI.rejectWithValue(error.response.data.message);
+export const getFeed = createAsyncThunk(
+  'feed/getFeed',
+  async (_, thunkAPI) => {
+    try {
+      // Using the centralized 'api' instance which handles base URL and token headers
+      const response = await api.get('/posts/feed');
+      return response.data;
+    } catch (error) {
+      const message = error.response?.data?.message || error.message;
+      return thunkAPI.rejectWithValue(message);
+    }
   }
-});
+);
 
-// ✅ 2. NEW: Toggle Like Action
+// 2. Toggle Like Action
+// Exported as a named export to fix the SyntaxError in PostCard.jsx
 export const toggleLike = createAsyncThunk(
   'feed/toggleLike',
   async (postId, thunkAPI) => {
     try {
-      // Assumes backend route is PUT /api/posts/:id/like
+      // Backend route: PUT /api/posts/:id/like
       const response = await api.put(`/posts/${postId}/like`);
       
-      // Return the postId so we know which post to update in the state
-      // Return the new likes array (or count) from the server
+      // Return the postId and the updated likes array from the server
       return { postId, likes: response.data }; 
     } catch (error) {
       const message = error.response?.data?.message || error.message;
@@ -66,6 +50,12 @@ export const feedSlice = createSlice({
       state.isError = false;
       state.message = '';
     },
+    // 3. Add Post Reducer
+    // Added to fix the SyntaxError in CreatePostWidget.jsx
+    addPost: (state, action) => {
+      // Pushes the new post to the beginning of the array so it appears at the top
+      state.posts.unshift(action.payload);
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -75,7 +65,7 @@ export const feedSlice = createSlice({
       })
       .addCase(getFeed.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.posts = action.payload; // Assuming payload is the array of posts
+        state.posts = action.payload; 
       })
       .addCase(getFeed.rejected, (state, action) => {
         state.isLoading = false;
@@ -83,17 +73,18 @@ export const feedSlice = createSlice({
         state.message = action.payload;
       })
 
-      // --- ✅ NEW: Toggle Like Cases ---
+      // --- Toggle Like Case ---
       .addCase(toggleLike.fulfilled, (state, action) => {
-        // Find the post that was liked and update its likes array
         const { postId, likes } = action.payload;
         const post = state.posts.find((p) => p._id === postId);
         if (post) {
-          post.likes = likes; // Update the likes immediately in the UI
+          // Update the likes array in the specific post object
+          post.likes = likes; 
         }
       });
   },
 });
 
-export const { resetFeed } = feedSlice.actions;
+// Export all actions
+export const { resetFeed, addPost } = feedSlice.actions;
 export default feedSlice.reducer;

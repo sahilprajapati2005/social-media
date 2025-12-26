@@ -1,5 +1,5 @@
 import React from 'react';
-import { format } from 'timeago.js'; // Optional: Install 'timeago.js' for nice dates
+import { format } from 'timeago.js'; 
 import Avatar from '../../../components/ui/Avatar';
 
 const Message = ({ message, own, senderProfilePic }) => {
@@ -16,7 +16,8 @@ const Message = ({ message, own, senderProfilePic }) => {
             ? 'bg-blue-600 text-white rounded-tr-none' 
             : 'bg-white border border-gray-200 text-gray-800 rounded-tl-none shadow-sm'
         }`}>
-          <p>{message.text}</p>
+          {/* FIX: Change .text to .content */}
+          <p>{message.content}</p> 
         </div>
       </div>
       

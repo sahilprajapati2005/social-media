@@ -3,17 +3,19 @@ const Message = require('../models/Message');
 // @desc    Send a message
 // @route   POST /api/messages
 // @access  Private
+// --- server/controllers/messageController.js ---
+
 const sendMessage = async (req, res) => {
     try {
-        const { receiverId, content } = req.body;
+        const { receiverId, content } = req.body; // Matches frontend payload
 
         const newMessage = await Message.create({
-            sender: req.user._id,
-            receiver: receiverId,
-            content
+            sender: req.user._id, // From authMiddleware
+            receiver: receiverId, // Required by model
+            content: content      // Required by model
         });
 
-        // Populate sender info to send back to frontend immediately
+        // Populate so the frontend can immediately show user details
         const fullMessage = await newMessage.populate('sender', 'username profilePicture');
 
         res.status(201).json(fullMessage);

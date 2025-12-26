@@ -1,11 +1,11 @@
 import React, { useState, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { AiOutlineImage, AiOutlineVideoCamera, AiOutlineClose } from 'react-icons/ai';
+import { AiOutlinePicture, AiOutlineVideoCamera, AiOutlineClose } from 'react-icons/ai';
 
 // App Logic
 import { addPost } from '../feedSlice';
 import api from '../../../utils/axios';
-import { useToast } from '../../../context/ToastContext';
+import { useToast } from '../../../context/ToastContext'; //
 
 // Components
 import Avatar from '../../../components/ui/Avatar';
@@ -14,21 +14,24 @@ import Button from '../../../components/ui/Button';
 const CreatePostWidget = () => {
   const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
-  const { addToast } = useToast();
+  
+  // FIX: Destructure showToast to match ToastContext.jsx
+  const { showToast } = useToast(); 
+  
+  
   const fileInputRef = useRef();
 
   const [desc, setDesc] = useState('');
   const [file, setFile] = useState(null);
-  const [mediaType, setMediaType] = useState(null); // 'image' or 'video'
+  const [mediaType, setMediaType] = useState(null); 
   const [isLoading, setIsLoading] = useState(false);
 
   const handleFileChange = (e, type) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      // Basic validation
       const sizeLimit = 10 * 1024 * 1024; // 10MB
       if (selectedFile.size > sizeLimit) {
-        return addToast('File size too large (Max 10MB)', 'error');
+        return showToast('File size too large (Max 10MB)', 'error'); //
       }
       setFile(selectedFile);
       setMediaType(type);
@@ -47,10 +50,13 @@ const CreatePostWidget = () => {
 
     setIsLoading(true);
     const formData = new FormData();
-    formData.append('userId', user._id);
-    formData.append('desc', desc);
+    
+    // FIX: Match backend req.body.caption
+    formData.append('caption', desc); 
+    
     if (file) {
-      formData.append('file', file);
+      // FIX: Match backend upload.single('image')
+      formData.append('image', file); 
     }
 
     try {
@@ -58,25 +64,22 @@ const CreatePostWidget = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       
-      // Update Redux Feed immediately
       dispatch(addPost(res.data));
       
-      // Reset Form
       setDesc('');
       clearFile();
-      addToast('Post published successfully!', 'success');
-    } catch (err) {
-      console.error(err);
-      addToast('Failed to post. Please try again.', 'error');
-    } finally {
+      showToast('Post published successfully!', 'success'); //
+    }catch (err) {
+    console.error(err);
+    // Use showToast instead of addToast
+    showToast('Failed to post. Please try again.', 'error'); 
+} finally {
       setIsLoading(false);
     }
   };
 
   return (
     <div className="mb-6 rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
-      
-      {/* Top Section: Avatar & Input */}
       <div className="flex gap-3">
         <Avatar src={user?.profilePicture} size="md" />
         <textarea
@@ -88,7 +91,6 @@ const CreatePostWidget = () => {
         />
       </div>
 
-      {/* Media Preview */}
       {file && (
         <div className="relative mt-3 rounded-lg bg-gray-100 p-2">
           <button 
@@ -114,11 +116,10 @@ const CreatePostWidget = () => {
         </div>
       )}
 
-      {/* Bottom Section: Actions & Submit */}
       <div className="mt-4 flex items-center justify-between border-t border-gray-100 pt-3">
         <div className="flex gap-4">
           <label className="flex cursor-pointer items-center gap-2 text-gray-500 transition hover:text-green-600">
-            <AiOutlineImage className="text-xl" />
+            <AiOutlinePicture className="text-xl" />
             <span className="hidden text-sm font-medium sm:block">Photo</span>
             <input 
               ref={fileInputRef}

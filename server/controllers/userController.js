@@ -121,10 +121,35 @@ const searchUsers = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+const getFollowingList = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).populate('following', 'username profilePicture bio');
+        if (!user) return res.status(404).json({ message: "User not found" });
+        
+        res.status(200).json(user.following);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// @desc    Get user's followers list
+// @route   GET /api/users/:id/followers
+const getFollowersList = async (req, res) => {
+    try {
+        const user = await User.findById(req.params.id).populate('followers', 'username profilePicture bio');
+        if (!user) return res.status(404).json({ message: "User not found" });
+        
+        res.status(200).json(user.followers);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
 
 module.exports = {
     getUserProfile,
     updateUserProfile,
     followUnfollowUser,
+    getFollowingList,
+    getFollowersList,
     searchUsers
 };

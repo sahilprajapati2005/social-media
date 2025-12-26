@@ -6,10 +6,11 @@ const postSchema = mongoose.Schema({
         ref: 'User',
         required: true
     },
-    caption: {
-        type: String,
-        required: true
-    },
+  caption: {
+    type: String,
+    required: false, // Change this to false
+    default: ""
+},
     image: {
         type: String, // URL from Cloudinary
         default: ""
