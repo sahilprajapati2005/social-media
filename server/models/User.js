@@ -69,12 +69,12 @@ const userSchema = mongoose.Schema(
 );
 
 // Middleware: Encrypt password using bcrypt before saving to DB
-userSchema.pre('save', async function (next) {
-    if (!this.isModified('password')) {
-        next();
-    }
+userSchema.pre('save', async function () { 
+    if (!this.isModified('password')) return; // Just return
+    
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    // No next() needed here for async functions in modern Mongoose
 });
 
 // Method: Check if entered password matches the hashed password in DB

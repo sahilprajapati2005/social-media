@@ -1,4 +1,6 @@
 const User = require('../models/User');
+const cloudinary = require('../config/cloudinary');
+
 
 // @desc    Get user profile by ID
 // @route   GET /api/users/:id
@@ -30,42 +32,37 @@ const getUserProfile = async (req, res) => {
 const updateUserProfile = async (req, res) => {
     try {
         const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: "User not found" });
 
-        if (user) {
-            user.username = req.body.username || user.username;
-            user.bio = req.body.bio || user.bio; // Ensure this matches what frontend sends
-            user.profilePicture = req.body.profilePicture || user.profilePicture;
-            
-            // --- ADD THESE UPDATES ---
-            user.coverPicture = req.body.coverPicture || user.coverPicture;
-            user.city = req.body.city || user.city;
-            user.from = req.body.from || user.from;
-            user.relationship = req.body.relationship || user.relationship;
-            // ------------------------
+        // Update basic info from req.body
+        user.username = req.body.username || user.username;
+        user.bio = req.body.bio || user.bio;
+        user.city = req.body.city || user.city;
+        user.from = req.body.from || user.from;
+        user.relationship = req.body.relationship || user.relationship;
 
-            if (req.body.password) {
-                user.password = req.body.password;
+        // Handle Image Uploads to Cloudinary
+        if (req.files) {
+            // Check for profile picture
+            if (req.files.profilePicture) {
+                const result = await cloudinary.uploader.upload(req.files.profilePicture[0].path, {
+                    folder: 'social_media_profiles',
+                });
+                user.profilePicture = result.secure_url;
             }
-
-            const updatedUser = await user.save();
-
-            res.json({
-                _id: updatedUser._id,
-                username: updatedUser.username,
-                email: updatedUser.email,
-                bio: updatedUser.bio,
-                profilePicture: updatedUser.profilePicture,
-                coverPicture: updatedUser.coverPicture,
-                city: updatedUser.city,
-                from: updatedUser.from,
-                relationship: updatedUser.relationship,
-                followers: updatedUser.followers,
-                following: updatedUser.following,
-            });
-        } else {
-            res.status(404).json({ message: 'User not found' });
+            // Check for cover picture
+            if (req.files.coverPicture) {
+                const result = await cloudinary.uploader.upload(req.files.coverPicture[0].path, {
+                    folder: 'social_media_covers',
+                });
+                user.coverPicture = result.secure_url;
+            }
         }
+
+        const updatedUser = await user.save();
+        res.status(200).json(updatedUser);
     } catch (error) {
+        console.error("Update Profile Error:", error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -107,23 +104,27 @@ const followUnfollowUser = async (req, res) => {
 // @route   GET /api/users/search?query=john
 // @access  Private
 const searchUsers = async (req, res) => {
-    const keyword = req.query.query
-        ? {
-            username: {
-                $regex: req.query.query,
-                $options: 'i', // Case insensitive
-            },
-        }
-        : {};
+  // Extract 'query' from the URL (matches ?query= in frontend)
+  const { query } = req.query; 
 
-    // Find users matching keyword, excluding the current user
-    const users = await User.find({ ...keyword, _id: { $ne: req.user._id } }).select('-password');
-    res.json(users);
+  if (!query) {
+    return res.status(200).json([]); // Return empty if no search term
+  }
+
+  try {
+    const users = await User.find({
+      username: { $regex: query, $options: 'i' } // 'i' makes it case-insensitive
+    }).select('-password');
+
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
 
 module.exports = {
     getUserProfile,
     updateUserProfile,
     followUnfollowUser,
-    searchUsers,
+    searchUsers
 };

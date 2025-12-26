@@ -3,23 +3,26 @@ const {
     getUserProfile,
     updateUserProfile,
     followUnfollowUser,
-    searchUsers,
+    searchUsers, // Ensure this is exported in userController.js
 } = require('../controllers/userController');
 const { protect } = require('../middleware/authMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 
 const router = express.Router();
 
-// Search users (GET /api/users/search?query=...)
-router.get('/search', protect, searchUsers);
+// 1. SPECIFIC STATIC ROUTES FIRST
+router.get('/search', protect, searchUsers); 
+// router.get('/:id', protect, getUserProfile);// 
 
-// Profile Management
+// 2. THE PROFILE ROUTE SECOND (So it doesn't get caught by :id)
 router.route('/profile')
-    .put(protect, updateUserProfile); // Update own profile
+    .put(protect, upload.fields([
+        { name: 'profilePicture', maxCount: 1 },
+        { name: 'coverPicture', maxCount: 1 }
+    ]), updateUserProfile);
 
-router.route('/:id')
-    .get(protect, getUserProfile); // View any user profile
-
-// Follow/Unfollow
+// 3. DYNAMIC PARAMETER ROUTES LAST
+router.get('/:id', protect, getUserProfile); 
 router.put('/:id/follow', protect, followUnfollowUser);
 
 module.exports = router;

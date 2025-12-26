@@ -1,3 +1,4 @@
+// File: client/src/hooks/useSocket.js
 import { useEffect, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
@@ -5,30 +6,35 @@ import { io } from 'socket.io-client';
 const useSocket = () => {
   const { user } = useSelector((state) => state.auth);
   const [onlineUsers, setOnlineUsers] = useState([]);
-  const socket = useRef(null);
+  const socket = useRef();
 
   useEffect(() => {
-    // Only connect if user is logged in
-    if (user) {
-      // Initialize Socket (Change port to 8900 or whatever your socket server runs on)
-      socket.current = io("ws://localhost:8900"); 
+    if (user?._id) {
+      // Point to port 5000 where your server.js is listening
+      socket.current = io("http://localhost:5000", {
+        withCredentials: true,
+        transports: ["websocket", "polling"], // Added polling as a fallback
+        reconnectionAttempts: 5,
+      });
 
-      // Send logged-in user ID to socket server
       socket.current.emit("addUser", user._id);
 
-      // Listen for online users list
       socket.current.on("getUsers", (users) => {
         setOnlineUsers(users);
       });
+      
+      // Log for your peace of mind
+      socket.current.on("connect", () => {
+        console.log("Connected to Socket Server!");
+      });
     }
 
-    // Cleanup on logout/unmount
     return () => {
       if (socket.current) {
         socket.current.disconnect();
       }
     };
-  }, [user]);
+  }, [user?._id]); // Added optional chaining for stability
 
   return { socket: socket.current, onlineUsers };
 };

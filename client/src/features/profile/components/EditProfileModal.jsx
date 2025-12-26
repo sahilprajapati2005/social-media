@@ -8,11 +8,12 @@ import { AiOutlineClose, AiFillCamera } from 'react-icons/ai';
 const EditProfileModal = ({ onClose }) => {
   const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
-  const { addToast } = useToast();
+  
+  // FIX: Destructure showToast to match ToastContext.jsx
+  const { showToast } = useToast(); 
 
   const [formData, setFormData] = useState({
     username: user?.username || '',
-    // CHANGED: Use 'bio' instead of 'desc' to match the database
     bio: user?.bio || '', 
     city: user?.city || '',
     from: user?.from || '',
@@ -42,10 +43,7 @@ const EditProfileModal = ({ onClose }) => {
     const data = new FormData();
     data.append('userId', user._id);
     data.append('username', formData.username);
-    
-    // CHANGED: Send 'bio' to the backend
     data.append('bio', formData.bio);
-    
     data.append('city', formData.city);
     data.append('from', formData.from);
     data.append('relationship', formData.relationship);
@@ -62,11 +60,13 @@ const EditProfileModal = ({ onClose }) => {
       const token = localStorage.getItem('token'); 
       dispatch(setCredentials({ user: res.data, token }));
 
-      addToast('Profile updated successfully!', 'success');
+      // FIX: Use showToast instead of addToast
+      showToast('Profile updated successfully!', 'success');
       onClose();
     } catch (err) {
       console.error(err);
-      addToast(err.response?.data?.message || 'Update failed', 'error');
+      // FIX: Use showToast instead of addToast
+      showToast(err.response?.data?.message || 'Update failed', 'error');
     } finally {
       setLoading(false);
     }
@@ -136,7 +136,7 @@ const EditProfileModal = ({ onClose }) => {
             <div>
               <label className="block text-sm font-medium text-gray-700">Bio</label>
               <textarea
-                name="bio" // Changed from bio to desc in older versions, now confirmed 'bio'
+                name="bio"
                 rows="3"
                 value={formData.bio}
                 onChange={handleChange}

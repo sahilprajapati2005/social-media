@@ -49,7 +49,9 @@ app.use('/api/users', require('./routes/userRoutes'));
 // --- ADDED THIS LINE TO FIX 404 ERROR ---
 app.use('/api/notifications', require('./routes/notificationRoutes')); 
 // ----------------------------------------
-
+// Add this near your other app.use('/api/...') lines (around line 45)
+// Add this line in the API routes section (look for other app.use calls)
+app.use('/api/conversations', require('./routes/conversationRoutes'));
 // 9. Socket.io Real-Time Logic
 let users = []; // Keep track of online users: [{ userId, socketId }]
 

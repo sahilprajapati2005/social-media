@@ -16,7 +16,7 @@
 // module.exports = router;
 
 const express = require('express');
-const { createPost, getFeedPosts, likePost } = require('../controllers/postController');
+const { createPost, getFeedPosts, likePost,getUserPosts } = require('../controllers/postController');
 const { protect } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
@@ -30,5 +30,6 @@ router.post('/', protect, upload.single('image'), createPost);
 
 // Like Post
 router.put('/:id/like', protect, likePost);
+router.get('/profile/:id', protect, getUserPosts);
 
 module.exports = router;
