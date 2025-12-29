@@ -109,21 +109,17 @@ const addComment = async (req, res) => {
         post.comments.push(newComment);
         await post.save();
 
-        // ✅ ADD NOTIFICATION LOGIC
-        // Only create a notification if the person commenting is NOT the post owner
+        // ✅ ADD THIS: Create Notification for Comment
         if (post.user.toString() !== req.user._id.toString()) {
             await Notification.create({
-                recipient: post.user,    // The owner of the post
-                sender: req.user._id,    // The person who commented
-                type: 'comment',         // Type from your enum
-                post: post._id           // Reference to the post
+                recipient: post.user, // Post owner
+                sender: req.user._id, // Commenter
+                type: 'comment',
+                post: post._id
             });
         }
 
-        // Populate and return only the comments array
-        const updatedPost = await Post.findById(req.params.id)
-            .populate('comments.user', 'username profilePicture');
-            
+        const updatedPost = await Post.findById(req.params.id).populate('comments.user', 'username profilePicture');
         res.status(201).json(updatedPost.comments);
     } catch (error) {
         res.status(500).json({ message: error.message });

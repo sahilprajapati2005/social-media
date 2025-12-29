@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const cloudinary = require('../config/cloudinary');
+const Notification = require('../models/Notification');
 
 
 // @desc    Get user profile by ID
@@ -72,25 +73,30 @@ const updateUserProfile = async (req, res) => {
 // @access  Private
 const followUnfollowUser = async (req, res) => {
     try {
-        if (req.user._id.toString() === req.params.id) {
-            return res.status(400).json({ message: 'You cannot follow yourself' });
-        }
-
         const currentUser = await User.findById(req.user._id);
         const userToFollow = await User.findById(req.params.id);
 
         if (!userToFollow) return res.status(404).json({ message: 'User not found' });
 
-if (currentUser.following.includes(req.params.id)) {
-    await currentUser.updateOne({ $pull: { following: req.params.id } });
-    await userToFollow.updateOne({ $pull: { followers: req.user._id } });
-    res.status(200).json({ isFollowing: false, message: 'User unfollowed' });
-} else {
-    await currentUser.updateOne({ $push: { following: req.params.id } });
-    await userToFollow.updateOne({ $push: { followers: req.user._id } });
-    // Create notification record here
-    res.status(200).json({ isFollowing: true, message: 'User followed' });
-}
+        if (currentUser.following.includes(req.params.id)) {
+            // Unfollow logic
+            await currentUser.updateOne({ $pull: { following: req.params.id } });
+            await userToFollow.updateOne({ $pull: { followers: req.user._id } });
+            res.status(200).json({ isFollowing: false, message: 'User unfollowed' });
+        } else {
+            // Follow logic
+            await currentUser.updateOne({ $push: { following: req.params.id } });
+            await userToFollow.updateOne({ $push: { followers: req.user._id } });
+
+            // ✅ ADD THIS: Create Notification for Follow
+            await Notification.create({
+                recipient: req.params.id, // Person being followed
+                sender: req.user._id,     // Person following
+                type: 'follow'
+            });
+
+            res.status(200).json({ isFollowing: true, message: 'User followed' });
+        }
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
