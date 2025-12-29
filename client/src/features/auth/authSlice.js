@@ -1,30 +1,39 @@
+// sahilprajapati2005/social-media/client/src/features/auth/authSlice.js
+
 import { createSlice } from '@reduxjs/toolkit';
 
-// --- Helper to Safely Parse User from LocalStorage ---
+/**
+ * Safely retrieves and parses the user object from LocalStorage.
+ * Ensures that 'following' and 'followers' arrays always exist to avoid UI crashes.
+ */
 const getUserFromStorage = () => {
   try {
     const user = localStorage.getItem('user');
-    if (!user || user === "undefined" || user === "null") {
-      return null;
+    if (!user || user === "undefined" || user === "null") return null;
+    
+    const parsedUser = JSON.parse(user);
+    
+    // ✅ Ensure arrays exist to prevent "cannot read property includes of undefined"
+    if (parsedUser) {
+      parsedUser.following = parsedUser.following || [];
+      parsedUser.followers = parsedUser.followers || [];
     }
-    return JSON.parse(user);
+    
+    return parsedUser;
   } catch (error) {
-    console.error("Error parsing user data:", error);
+    console.error("Auth Storage Error:", error);
     return null;
   }
 };
 
-// Initialize State
 const token = localStorage.getItem('token');
 const user = getUserFromStorage();
-
-// ✅ FIX 2: Check for "undefined" string to prevent false authentication
 const isValidToken = token && token !== "undefined" && token !== "null";
 
 const initialState = {
   user: user,
   token: isValidToken ? token : null,
-  isAuthenticated: !!isValidToken, // Only true if token is valid
+  isAuthenticated: !!isValidToken,
   isLoading: false,
   isError: false,
   message: '',
@@ -34,16 +43,31 @@ export const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
+    /**
+     * Called during successful login or registration.
+     * Persists the user data and JWT token to LocalStorage.
+     */
     setCredentials: (state, action) => {
       const { user, token } = action.payload;
-      state.user = user;
+      
+      // ✅ Sanitize data before saving
+      const sanitizedUser = {
+        ...user,
+        following: user.following || [],
+        followers: user.followers || []
+      };
+
+      state.user = sanitizedUser;
       state.token = token;
       state.isAuthenticated = true;
       
-      // Save to Local Storage
-      localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('user', JSON.stringify(sanitizedUser));
       localStorage.setItem('token', token);
     },
+
+    /**
+     * Clears all session data and redirects the app state to unauthenticated.
+     */
     logout: (state) => {
       state.user = null;
       state.token = null;
@@ -51,8 +75,35 @@ export const authSlice = createSlice({
       localStorage.removeItem('user');
       localStorage.removeItem('token');
     },
+
+    /**
+     * ✅ SYNC FOLLOW/UNFOLLOW
+     * Keeps the 'following' list of the logged-in user updated across the app.
+     * This ensures the "Unfollow" button shows up correctly on all profile pages.
+     */
+    updateFollowing: (state, action) => {
+      const { targetId, isFollowing } = action.payload;
+      
+      if (state.user) {
+        // Ensure the array exists before operating on it
+        if (!state.user.following) state.user.following = [];
+
+        if (isFollowing) {
+          // Add to following list ONLY if it doesn't already exist
+          if (!state.user.following.includes(targetId)) {
+            state.user.following.push(targetId);
+          }
+        } else {
+          // Remove from following list
+          state.user.following = state.user.following.filter(id => id !== targetId);
+        }
+        
+        // ✅ CRITICAL: Sync with LocalStorage so the state persists after a refresh
+        localStorage.setItem('user', JSON.stringify(state.user));
+      }
+    },
   },
 });
 
-export const { setCredentials, logout } = authSlice.actions;
+export const { setCredentials, logout, updateFollowing } = authSlice.actions;
 export default authSlice.reducer;

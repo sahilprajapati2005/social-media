@@ -1,9 +1,11 @@
+// sahilprajapati2005/social-media/client/src/features/feed/components/Comments.jsx
+
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, parseISO, isValid } from 'date-fns'; // Added parseISO and isValid
 import api from '../../../utils/axios';
-import Avatar from '../../../components/ui/Avatar'; // Using the reusable component
+import Avatar from '../../../components/ui/Avatar';
 
 const Comments = ({ postId }) => {
   const { user } = useSelector((state) => state.auth);
@@ -12,7 +14,19 @@ const Comments = ({ postId }) => {
   const [newComment, setNewComment] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Fetch comments on mount
+  // Helper function to safely format the date
+  const getFormattedDate = (dateString) => {
+    if (!dateString) return 'Just now';
+    
+    // Parse the date safely
+    const date = typeof dateString === 'string' ? parseISO(dateString) : new Date(dateString);
+    
+    // Check if the resulting date is valid to prevent RangeError
+    if (!isValid(date)) return 'Just now';
+    
+    return formatDistanceToNow(date, { addSuffix: true });
+  };
+
   useEffect(() => {
     const fetchComments = async () => {
       try {
@@ -36,7 +50,7 @@ const Comments = ({ postId }) => {
         userId: user._id
       });
       
-      // Append new comment to list immediately
+      // data should be the new comment object returned from the server
       setComments((prev) => [data, ...prev]);
       setNewComment('');
     } catch (err) {
@@ -76,22 +90,19 @@ const Comments = ({ postId }) => {
         ) : (
           comments.map((comment) => (
             <div key={comment._id} className="flex gap-3">
-
-
-             <Link to={`/profile/${comment.user?._id}`}>
-  <Avatar src={comment.user?.profilePicture} size="sm" />
-</Link>
-<div className="flex flex-col">
-  <div className="rounded-2xl bg-gray-100 px-3 py-2">
-    <Link to={`/profile/${comment.user?._id}`} className="block text-xs font-bold text-gray-900 hover:underline">
-      {comment.user?.username}
-    </Link>
-    <p className="text-sm text-gray-800">{comment.text}</p>
-  </div>
-
-
+              <Link to={`/profile/${comment.user?._id}`}>
+                <Avatar src={comment.user?.profilePicture} size="sm" />
+              </Link>
+              <div className="flex flex-col">
+                <div className="rounded-2xl bg-gray-100 px-3 py-2">
+                  <Link to={`/profile/${comment.user?._id}`} className="block text-xs font-bold text-gray-900 hover:underline">
+                    {comment.user?.username}
+                  </Link>
+                  <p className="text-sm text-gray-800">{comment.text}</p>
+                </div>
+                {/* Safe Date Formatting */}
                 <span className="ml-2 mt-1 text-xs text-gray-500">
-                  {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
+                  {getFormattedDate(comment.createdAt)}
                 </span>
               </div>
             </div>

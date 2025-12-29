@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux'; // Added useDispatch
 import { useToast } from '../context/ToastContext';
 import api from '../utils/axios';
+import { updateFollowing } from '../features/auth/authSlice'; // Action to sync Redux
 
 // Components
 import PostCard from '../features/feed/components/PostCard';
@@ -14,6 +15,7 @@ import Avatar from '../components/ui/Avatar';
 const ProfilePage = () => {
   const { userId } = useParams(); 
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const { user: currentUser } = useSelector((state) => state.auth);
   const { showToast } = useToast();
   
@@ -30,15 +32,19 @@ const ProfilePage = () => {
 
   // Determine if viewing own profile
   const isOwnProfile = !userId || userId === 'me' || userId === currentUser?._id;
-  
-  // Use current user ID for personal profile, or URL param for others
   const idToFetch = isOwnProfile ? currentUser?._id : userId;
+
+  // ✅ Initialize follow status from Redux state whenever current user or profile changes
+  useEffect(() => {
+    if (currentUser && profileUser) {
+      const alreadyFollowing = currentUser.following?.includes(profileUser._id);
+      setIsFollowing(!!alreadyFollowing);
+    }
+  }, [currentUser, profileUser]);
 
   useEffect(() => {
     const fetchProfileData = async () => {
-      if (!idToFetch || idToFetch === 'undefined' || idToFetch === 'null') {
-        return; 
-      }
+      if (!idToFetch || idToFetch === 'undefined' || idToFetch === 'null') return;
 
       setLoading(true);
       try {
@@ -49,59 +55,51 @@ const ProfilePage = () => {
 
         setProfileUser(userRes.data);
         setPosts(postsRes.data);
-        
-        if (currentUser && userRes.data) {
-          setIsFollowing(currentUser.following?.includes(userRes.data._id));
-        }
-
       } catch (error) {
-        console.error("Profile load failed", error);
-        if (error.response?.status !== 404) {
-             showToast("Failed to load profile", "error");
-        }
+        if (error.response?.status !== 404) showToast("Failed to load profile", "error");
       } finally {
         setLoading(false);
       }
     };
-
     fetchProfileData();
-  }, [idToFetch, currentUser, showToast, showEditModal]);
+  }, [idToFetch, showToast, showEditModal]);
 
   const handleFollowToggle = async () => {
-    if (isOwnProfile) return;
-
-    setIsFollowing((prev) => !prev);
-    setProfileUser((prev) => ({
-      ...prev,
-      followers: isFollowing 
-        ? prev.followers.filter(id => id !== currentUser._id)
-        : [...prev.followers, currentUser._id]
-    }));
+    if (isOwnProfile || !profileUser) return;
 
     try {
-      if (isFollowing) {
-        await api.put(`/users/${profileUser._id}/unfollow`);
-      } else {
-        await api.put(`/users/${profileUser._id}/follow`);
-      }
+      // Backend handles both follow/unfollow on this endpoint
+      const response = await api.put(`/users/${profileUser._id}/follow`);
+      const { isFollowing: serverStatus } = response.data;
+
+      // 1. Update Global Redux state so it persists when searching/navigating
+      dispatch(updateFollowing({ 
+        targetId: profileUser._id, 
+        isFollowing: serverStatus 
+      }));
+
+      // 2. Update local profile UI count
+      setProfileUser((prev) => ({
+        ...prev,
+        followers: serverStatus 
+          ? [...prev.followers, currentUser._id]
+          : prev.followers.filter(id => id !== currentUser._id)
+      }));
+
+      showToast(serverStatus ? "Followed user" : "Unfollowed user", "success");
     } catch (error) {
-      setIsFollowing((prev) => !prev);
       showToast("Action failed", "error");
     }
   };
 
-  // ✅ New function to handle starting a chat
   const handleStartChat = async () => {
     try {
-      // First, create or fetch the conversation in the database
       await api.post('/conversations', {
         senderId: currentUser._id,
         receiverId: profileUser._id
       });
-      // Then, navigate to the chat page
       navigate('/chat');
     } catch (err) {
-      console.error("Chat initiation failed", err);
       showToast("Could not start conversation", "error");
     }
   };
@@ -128,18 +126,12 @@ const ProfilePage = () => {
         <div className="px-4 pb-4 md:px-8">
           <div className="relative flex flex-col items-center md:flex-row md:items-end md:justify-between">
             <div className="relative -mt-16 md:-mt-20">
-              <Avatar 
-                src={profileUser.profilePicture} 
-                className="h-32 w-32 border-4 border-white shadow-md md:h-40 md:w-40" 
-              />
+              <Avatar src={profileUser.profilePicture} className="h-32 w-32 border-4 border-white shadow-md md:h-40 md:w-40" />
             </div>
 
             <div className="mt-4 flex gap-3 md:mb-4 md:mt-0">
               {isOwnProfile ? (
-                <button 
-                  onClick={() => setShowEditModal(true)}
-                  className="rounded-full border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-50 transition"
-                >
+                <button onClick={() => setShowEditModal(true)} className="rounded-full border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-50 transition">
                   Edit Profile
                 </button>
               ) : (
@@ -154,12 +146,7 @@ const ProfilePage = () => {
                   >
                     {isFollowing ? 'Unfollow' : 'Follow'}
                   </button>
-                  
-                  {/* Changed from Link to a button with handleStartChat logic */}
-                  <button 
-                    onClick={handleStartChat}
-                    className="rounded-full border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-50 transition"
-                  >
+                  <button onClick={handleStartChat} className="rounded-full border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-50 transition">
                     Message
                   </button>
                 </>
@@ -170,9 +157,7 @@ const ProfilePage = () => {
           <div className="mt-4 text-center md:text-left">
             <h1 className="text-2xl font-bold text-gray-900">{profileUser.username}</h1>
             <p className="text-sm text-gray-500">{profileUser.email}</p>
-            {profileUser.bio && (
-              <p className="mt-2 max-w-2xl text-gray-700 whitespace-pre-line">{profileUser.bio}</p>
-            )}
+            {profileUser.bio && <p className="mt-2 max-w-2xl text-gray-700 whitespace-pre-line">{profileUser.bio}</p>}
             <div className="mt-2 flex flex-wrap gap-4 text-sm text-gray-500 justify-center md:justify-start">
               {profileUser.city && <span>📍 {profileUser.city}</span>}
               {profileUser.from && <span>🏠 From {profileUser.from}</span>}
@@ -199,30 +184,13 @@ const ProfilePage = () => {
 
       <div className="mx-auto max-w-4xl px-4">
         <h2 className="mb-4 text-xl font-bold text-gray-800">Posts</h2>
-        {posts.length > 0 ? (
-          <div className="flex flex-col gap-4">
-            {posts.map((post) => (
-              <PostCard key={post._id} post={post} />
-            ))}
-          </div>
-        ) : (
-          <div className="rounded-xl border border-gray-200 bg-white p-10 text-center">
-            <p className="text-gray-500">No posts yet.</p>
-          </div>
-        )}
+        <div className="flex flex-col gap-4">
+          {posts.map((post) => <PostCard key={post._id} post={post} />)}
+        </div>
       </div>
 
-      {showFollowModal && (
-        <FollowListModal 
-          userId={profileUser._id} 
-          type={followModalType} 
-          onClose={() => setShowFollowModal(false)} 
-        />
-      )}
-
-      {showEditModal && (
-        <EditProfileModal onClose={() => setShowEditModal(false)} />
-      )}
+      {showFollowModal && <FollowListModal userId={profileUser._id} type={followModalType} onClose={() => setShowFollowModal(false)} />}
+      {showEditModal && <EditProfileModal onClose={() => setShowEditModal(false)} />}
     </div>
   );
 };

@@ -1,59 +1,52 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
-const http = require('http'); // Required for Socket.io
+const http = require('http'); 
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 const cookieParser = require('cookie-parser');
-const passport = require('passport'); // <--- 1. Import Passport
+const passport = require('passport'); 
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
-// 2. Load Environment Variables
+// 1. Load Environment Variables & Connect DB
 dotenv.config();
-
-// 3. Connect to Database
 connectDB();
 
-// 4. Load Passport Config
-require('./config/passport'); // <--- 2. Load the strategy we created
+// 2. Load Passport Config
+require('./config/passport'); 
 
 const app = express();
 const server = http.createServer(app);
 
-// 5. Initialize Socket.io
+// 3. Initialize Socket.io with Notification Support
 const io = new Server(server, {
     cors: {
-        origin: "http://localhost:5173", // Your Vite Frontend URL
+        origin: "http://localhost:5173", 
         methods: ["GET", "POST"],
         credentials: true
     }
 });
 
-// 6. Middlewares
-app.use(express.json()); // Parse JSON bodies
-app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
-app.use(cookieParser()); // Parse cookies
+// 4. Middlewares
+app.use(express.json()); 
+app.use(express.urlencoded({ extended: true })); 
+app.use(cookieParser()); 
 app.use(cors({
-    origin: "http://localhost:5173", // Frontend URL
-    credentials: true // Allow cookies/headers to be sent
+    origin: "http://localhost:5173", 
+    credentials: true 
 }));
+app.use(passport.initialize()); 
 
-// 7. Initialize Passport Middleware (Required for Google Auth)
-app.use(passport.initialize()); // <--- 3. Initialize Passport
-
-// 8. API Routes
+// 5. API Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/posts', require('./routes/postRoutes'));
 app.use('/api/messages', require('./routes/messageRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
-// --- ADDED THIS LINE TO FIX 404 ERROR ---
 app.use('/api/notifications', require('./routes/notificationRoutes')); 
-// ----------------------------------------
-// Add this near your other app.use('/api/...') lines (around line 45)
-// Add this line in the API routes section (look for other app.use calls)
 app.use('/api/conversations', require('./routes/conversationRoutes'));
-// 9. Socket.io Real-Time Logic
-let users = []; // Keep track of online users: [{ userId, socketId }]
+
+// 6. Socket.io Real-Time Logic
+let users = []; 
 
 const addUser = (userId, socketId) => {
     !users.some((user) => user.userId === userId) &&
@@ -69,32 +62,40 @@ const getUser = (userId) => {
 };
 
 io.on('connection', (socket) => {
-    // A. Connection
     console.log('A user connected:', socket.id);
 
-    // B. User comes online
+    // User comes online
     socket.on("addUser", (userId) => {
         if(userId) {
             addUser(userId, socket.id);
-            io.emit("getUsers", users); // Broadcast online user list to everyone
+            io.emit("getUsers", users); 
         }
     });
 
     // C. Sending a Message
     socket.on("sendMessage", ({ senderId, receiverId, text }) => {
         const user = getUser(receiverId);
-        
-        // If the receiver is online, send the message to their socket ID
         if (user) {
             io.to(user.socketId).emit("getMessage", {
                 senderId,
                 text,
             });
         } 
-        // Message is already saved to MongoDB via the API endpoint
     });
 
-    // D. Disconnection
+    // ✅ ADDED: Real-time Notification Logic for Likes and Follows
+    socket.on("sendNotification", ({ senderName, receiverId, type }) => {
+        const receiver = getUser(receiverId);
+        if (receiver) {
+            // Emits to the specific receiver's socket
+            io.to(receiver.socketId).emit("getNotification", {
+                senderName,
+                type,
+            });
+        }
+    });
+
+    // Disconnection
     socket.on('disconnect', () => {
         console.log('User disconnected:', socket.id);
         removeUser(socket.id);
@@ -102,13 +103,11 @@ io.on('connection', (socket) => {
     });
 });
 
-// 10. Error Handling Middlewares (Must be last)
+// 7. Error Handling
 app.use(notFound);
 app.use(errorHandler);
 
-// 11. Start Server
 const PORT = process.env.PORT || 5000;
-
 server.listen(PORT, () => {
     console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
 });

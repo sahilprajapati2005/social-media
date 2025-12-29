@@ -1,6 +1,7 @@
 const Post = require('../models/Post');
 const User = require('../models/User');
 const cloudinary = require('../config/cloudinary');
+const Notification = require('../models/Notification');
 const fs = require('fs');
 
 // @desc    Create a new post
@@ -64,16 +65,28 @@ const likePost = async (req, res) => {
         const post = await Post.findById(req.params.id);
         if (!post) return res.status(404).json({ message: 'Post not found' });
 
-        // Toggle Like: Remove if already exists, add if it doesn't
-        if (post.likes.includes(req.user._id)) {
+        const isLiked = post.likes.includes(req.user._id);
+
+        if (isLiked) {
             post.likes = post.likes.filter((id) => id.toString() !== req.user._id.toString());
         } else {
             post.likes.push(req.user._id);
+            
+            // Create notification if liking someone else's post
+            if (post.user.toString() !== req.user._id.toString()) {
+                await Notification.create({
+                    recipient: post.user,
+                    sender: req.user._id,
+                    type: 'like',
+                    post: post._id
+                });
+            }
         }
 
         await post.save();
-        res.status(200).json(post.likes); // Return updated likes array
+        res.status(200).json(post.likes); 
     } catch (error) {
+        console.error("Like Error:", error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -96,8 +109,21 @@ const addComment = async (req, res) => {
         post.comments.push(newComment);
         await post.save();
 
+        // ✅ ADD NOTIFICATION LOGIC
+        // Only create a notification if the person commenting is NOT the post owner
+        if (post.user.toString() !== req.user._id.toString()) {
+            await Notification.create({
+                recipient: post.user,    // The owner of the post
+                sender: req.user._id,    // The person who commented
+                type: 'comment',         // Type from your enum
+                post: post._id           // Reference to the post
+            });
+        }
+
         // Populate and return only the comments array
-        const updatedPost = await Post.findById(req.params.id).populate('comments.user', 'username profilePicture');
+        const updatedPost = await Post.findById(req.params.id)
+            .populate('comments.user', 'username profilePicture');
+            
         res.status(201).json(updatedPost.comments);
     } catch (error) {
         res.status(500).json({ message: error.message });
