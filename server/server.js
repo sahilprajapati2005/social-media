@@ -27,6 +27,10 @@ const io = new Server(server, {
     }
 });
 
+app.get('/', (req, res) => {
+    res.send('API is running...');
+});
+
 // 4. Middlewares
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' })); 

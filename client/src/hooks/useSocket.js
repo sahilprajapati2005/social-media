@@ -11,7 +11,7 @@ const useSocket = () => {
   useEffect(() => {
     if (user?._id) {
       // Point to port 5000 where your server.js is listening
-      socket.current = io("http://localhost:5000", {
+      socket.current = io("https://social-app-git-main-sahils-projects-e4cd46a0.vercel.app/", {
         withCredentials: true,
         transports: ["websocket", "polling"], // Added polling as a fallback
         reconnectionAttempts: 5,
