@@ -12,14 +12,13 @@ const createPost = async (req, res) => {
         const { caption } = req.body;
         let imageUrl = '';
 
-        // Added a safety check to see if req.file exists before accessing .path
         if (req.file) { 
             const result = await cloudinary.uploader.upload(req.file.path, {
                 folder: 'social_media_app',
+                resource_type: 'auto', // UPDATED: Required for video support
             });
             imageUrl = result.secure_url;
             
-            // Delete the local file after successful upload
             if (fs.existsSync(req.file.path)) {
                 fs.unlinkSync(req.file.path); 
             }
@@ -27,14 +26,13 @@ const createPost = async (req, res) => {
 
         const post = await Post.create({
             user: req.user._id,
-            caption: caption || " ", // Ensure caption isn't an empty string to pass validation
+            caption: caption || " ",
             image: imageUrl, 
         });
 
         await post.populate('user', 'username profilePicture');
         res.status(201).json(post);
     } catch (error) {
-        console.error("Create Post Error:", error);
         res.status(500).json({ message: error.message });
     }
 };
@@ -156,12 +154,33 @@ const getComments = async (req, res) => {
     }
 };
 
+const getPostById = async (req, res) => {
+    try {
+        const post = await Post.findById(req.params.id)
+            .populate('user', 'username profilePicture')
+            .populate({
+                path: 'comments.user',
+                select: 'username profilePicture'
+            });
+
+        if (!post) {
+            return res.status(404).json({ message: 'Post not found' });
+        }
+
+        res.status(200).json(post);
+    } catch (error) {
+        console.error("Get Post Error:", error);
+        res.status(500).json({ message: error.message });
+    }
+}
+
 
 module.exports = { 
     createPost, 
     getFeedPosts, 
     likePost,
     addComment,
+    getPostById,
     getComments,
     getUserPosts
 };

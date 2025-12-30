@@ -1,29 +1,28 @@
 const multer = require('multer');
 const path = require('path');
 
-// Set storage engine (store temporarily on disk)
 const storage = multer.diskStorage({
     filename: function (req, file, cb) {
         cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
     }
 });
 
-// Check file type (Allow Images only for now, expand for video later)
 function checkFileType(file, cb) {
-    const filetypes = /jpeg|jpg|png|gif/;
+    // UPDATED: Added video extensions
+    const filetypes = /jpeg|jpg|png|gif|mp4|mov|webm|ogg/; 
     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
     const mimetype = filetypes.test(file.mimetype);
 
     if (mimetype && extname) {
         return cb(null, true);
     } else {
-        cb('Error: Images Only!');
+        cb('Error: Only Images and Videos are allowed!');
     }
 }
 
 const upload = multer({
     storage: storage,
-    limits: { fileSize: 5000000 }, // 5MB Limit
+    limits: { fileSize: 50 * 1024 * 1024 }, // UPDATED: Increased to 50MB for videos
     fileFilter: function (req, file, cb) {
         checkFileType(file, cb);
     }

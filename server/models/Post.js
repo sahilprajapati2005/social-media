@@ -11,9 +11,10 @@ const postSchema = mongoose.Schema({
     required: false, // Change this to false
     default: ""
 },
-    image: {
-        type: String, // URL from Cloudinary
-        default: ""
+   mediaType: {
+        type: String,
+        enum: ['image', 'video', 'none'],
+        default: 'none'
     },
     likes: [
         {

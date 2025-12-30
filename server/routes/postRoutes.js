@@ -5,7 +5,8 @@ const {
   createPost, 
   getFeedPosts, 
   likePost, 
-  getUserPosts, 
+  getUserPosts,
+  getPostById, 
   addComment, // Make sure this is imported
   getComments  // We will create this next
 } = require('../controllers/postController');
@@ -18,6 +19,7 @@ router.get('/feed', protect, getFeedPosts);
 router.post('/', protect, upload.single('image'), createPost);
 router.put('/:id/like', protect, likePost);
 router.get('/profile/:id', protect, getUserPosts);
+router.get('/:id', protect, getPostById);
 
 // --- ADD THESE TWO LINES ---
 router.post('/:id/comments', protect, addComment); // Handles POST for new comments
