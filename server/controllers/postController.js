@@ -11,14 +11,20 @@ const createPost = async (req, res) => {
     try {
         const { caption } = req.body;
         let imageUrl = '';
+        let mediaType = 'none';
 
         if (req.file) { 
+            // upload to cloudinary using resource_type: auto to detect video vs image
             const result = await cloudinary.uploader.upload(req.file.path, {
                 folder: 'social_media_app',
-                resource_type: 'auto', // UPDATED: Required for video support
+                resource_type: 'auto', 
             });
-            imageUrl = result.secure_url;
             
+            imageUrl = result.secure_url;
+            // Determine resource type from Cloudinary response
+            mediaType = result.resource_type === 'video' ? 'video' : 'image';
+            
+            // Delete local temporary file after upload
             if (fs.existsSync(req.file.path)) {
                 fs.unlinkSync(req.file.path); 
             }
@@ -26,8 +32,9 @@ const createPost = async (req, res) => {
 
         const post = await Post.create({
             user: req.user._id,
-            caption: caption || " ",
-            image: imageUrl, 
+            caption: caption || "",
+            image: imageUrl, // Ensure your Post model has this field
+            mediaType: mediaType, // Save detected media type to DB
         });
 
         await post.populate('user', 'username profilePicture');

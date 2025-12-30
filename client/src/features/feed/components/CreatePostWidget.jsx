@@ -29,7 +29,7 @@ const CreatePostWidget = () => {
   const handleFileChange = (e, type) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      const sizeLimit = 10 * 1024 * 1024; // 10MB
+      const sizeLimit = 50 * 1024 * 1024; // 10MB
       if (selectedFile.size > sizeLimit) {
         return showToast('File size too large (Max 10MB)', 'error'); //
       }

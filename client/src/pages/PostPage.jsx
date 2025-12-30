@@ -1,15 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { AiOutlineArrowLeft } from 'react-icons/ai';
+
+// App Logic
 import api from '../utils/axios';
+import { useToast } from '../context/ToastContext';
+
+// Components
 import PostCard from '../features/feed/components/PostCard';
 import Spinner from '../components/ui/Spinner';
-import { useToast } from '../context/ToastContext';
-import { AiOutlineArrowLeft } from 'react-icons/ai';
 
 const PostPage = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
-  const { addToast } = useToast(); // Using addToast as requested
+  
+  // Updated to use showToast to match your ToastContext implementation
+  const { showToast } = useToast(); 
   
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -18,12 +24,13 @@ const PostPage = () => {
     const fetchPost = async () => {
       try {
         setLoading(true);
-        // This endpoint requires router.get('/:id', ...) in postRoutes.js
+        // Fetches data using the getPostById controller method
         const { data } = await api.get(`/posts/${postId}`);
         setPost(data);
       } catch (error) {
         console.error("Post Fetch Error:", error);
-        addToast("Post not found or deleted", "error");
+        // Updated to use showToast
+        showToast("Post not found or deleted", "error");
         navigate('/'); 
       } finally {
         setLoading(false);
@@ -33,7 +40,7 @@ const PostPage = () => {
     if (postId) {
       fetchPost();
     }
-  }, [postId, navigate, addToast]);
+  }, [postId, navigate, showToast]);
 
   if (loading) {
     return (
@@ -45,14 +52,19 @@ const PostPage = () => {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
+      {/* Navigation Header */}
       <button 
         onClick={() => navigate(-1)}
         className="mb-6 flex items-center gap-2 font-medium text-gray-600 hover:text-blue-600 transition-colors"
       >
         <AiOutlineArrowLeft />
-        Back
+        <span>Back to Feed</span>
       </button>
 
+      {/* Post Rendering: 
+          PostCard handles the conditional logic for rendering 
+          <img> or <video> based on post.mediaType automatically.
+      */}
       {post ? (
         <PostCard post={post} />
       ) : (

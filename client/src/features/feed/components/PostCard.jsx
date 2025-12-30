@@ -19,16 +19,15 @@ const PostCard = ({ post }) => {
   // Local UI State
   const [showComments, setShowComments] = useState(false);
   const [showShare, setShowShare] = useState(false);
-  const [likeAnim, setLikeAnim] = useState(false); // For simple animation effect
+  const [likeAnim, setLikeAnim] = useState(false);
 
-  // Derived State - Check if user is in the likes array
-  const isLiked = post.likes.includes(user?._id);
-  const likeCount = post.likes.length;
+  // Check if user is in the likes array
+  const isLiked = post.likes?.includes(user?._id);
+  const likeCount = post.likes?.length || 0;
 
   const handleLike = () => {
     dispatch(toggleLike(post._id));
     
-    // Trigger animation
     if (!isLiked) {
       setLikeAnim(true);
       setTimeout(() => setLikeAnim(false), 300);
@@ -38,7 +37,6 @@ const PostCard = ({ post }) => {
   return (
     <div className="mb-6 rounded-xl border border-gray-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md">
       {/* --- Header: User Info & Date --- */}
-      {/* Changed post.userId to post.user._id to match populated data */}
       <div className="mb-3 flex items-center justify-between">
         <Link to={`/profile/${post.user?._id}`} className="flex items-center gap-3">
           <Avatar 
@@ -51,37 +49,44 @@ const PostCard = ({ post }) => {
               {post.user?.username}
             </span>
             <span className="text-xs text-gray-500">
-              {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+              {post.createdAt ? formatDistanceToNow(new Date(post.createdAt), { addSuffix: true }) : ''}
             </span>
           </div>
         </Link>
       </div>
 
       {/* --- Content: Text --- */}
-      {/* Changed post.desc to post.caption to match Post model */}
       {post.caption && (
         <p className="mb-3 whitespace-pre-wrap text-gray-800 leading-relaxed">
           {post.caption}
         </p>
       )}
       
-      {/* --- Content: Image/Media --- */}
-      {/* Changed post.img to post.image to match Post model */}
+      {/* --- Content: Media (Image or Video) --- */}
       {post.image && (
         <div className="mb-3 overflow-hidden rounded-lg bg-gray-100">
-          <img 
-            src={post.image} 
-            alt="Post content" 
-            className="w-full object-cover max-h-[600px]"
-            loading="lazy"
-          />
+          {/* Use mediaType to decide between <img> and <video> */}
+          {post.mediaType === 'video' ? (
+            <video 
+              src={post.image} 
+              controls 
+              className="w-full max-h-[600px] rounded-lg"
+              preload="metadata"
+            />
+          ) : (
+            <img 
+              src={post.image} 
+              alt="Post content" 
+              className="w-full object-cover max-h-[600px] rounded-lg"
+              loading="lazy"
+            />
+          )}
         </div>
       )}
 
       {/* --- Action Bar: Like, Comment, Share --- */}
       <div className="flex items-center justify-between border-t border-gray-100 pt-3">
         <div className="flex gap-6">
-          
           {/* Like Button */}
           <button 
             onClick={handleLike}
@@ -120,13 +125,8 @@ const PostCard = ({ post }) => {
       </div>
 
       {/* --- Expandable Sections --- */}
-      
-      {/* Comments Section */}
-      {showComments && (
-        <Comments postId={post._id} />
-      )}
+      {showComments && <Comments postId={post._id} />}
 
-      {/* Share Modal */}
       {showShare && (
         <ShareModal 
           post={post} 
