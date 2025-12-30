@@ -1,10 +1,11 @@
-// sahilprajapati2005/social-media/client/src/features/auth/authSlice.js
+// client/src/features/auth/authSlice.js
 
 import { createSlice } from '@reduxjs/toolkit';
 
 /**
  * Safely retrieves and parses the user object from LocalStorage.
- * Ensures that 'following' and 'followers' arrays always exist to avoid UI crashes.
+ * Ensures that 'following' and 'followers' arrays always exist to avoid UI crashes
+ * when performing checks like .includes().
  */
 const getUserFromStorage = () => {
   try {
@@ -45,12 +46,12 @@ export const authSlice = createSlice({
   reducers: {
     /**
      * Called during successful login or registration.
-     * Persists the user data and JWT token to LocalStorage.
+     * Persists the sanitized user data and JWT token to LocalStorage.
      */
     setCredentials: (state, action) => {
       const { user, token } = action.payload;
       
-      // ✅ Sanitize data before saving
+      // ✅ Sanitize data before saving to ensure arrays are never undefined
       const sanitizedUser = {
         ...user,
         following: user.following || [],
@@ -66,7 +67,7 @@ export const authSlice = createSlice({
     },
 
     /**
-     * Clears all session data and redirects the app state to unauthenticated.
+     * Clears all session data from both the Redux state and LocalStorage.
      */
     logout: (state) => {
       state.user = null;
@@ -79,7 +80,8 @@ export const authSlice = createSlice({
     /**
      * ✅ SYNC FOLLOW/UNFOLLOW
      * Keeps the 'following' list of the logged-in user updated across the app.
-     * This ensures the "Unfollow" button shows up correctly on all profile pages.
+     * This ensures the "Unfollow" button shows up correctly on all profile pages 
+     * and that the Sidebar suggestions update in real-time.
      */
     updateFollowing: (state, action) => {
       const { targetId, isFollowing } = action.payload;
@@ -102,8 +104,24 @@ export const authSlice = createSlice({
         localStorage.setItem('user', JSON.stringify(state.user));
       }
     },
+
+    /**
+     * Updates the user profile data (e.g., after editing bio or profile picture)
+     * while preserving existing followers/following data.
+     */
+    updateUserInfo: (state, action) => {
+        if (state.user) {
+            state.user = { 
+                ...state.user, 
+                ...action.payload,
+                following: state.user.following || [],
+                followers: state.user.followers || []
+            };
+            localStorage.setItem('user', JSON.stringify(state.user));
+        }
+    }
   },
 });
 
-export const { setCredentials, logout, updateFollowing } = authSlice.actions;
+export const { setCredentials, logout, updateFollowing, updateUserInfo } = authSlice.actions;
 export default authSlice.reducer;

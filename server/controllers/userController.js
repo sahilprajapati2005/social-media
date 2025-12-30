@@ -145,11 +145,58 @@ const getFollowersList = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+const getSuggestions = async (req, res) => {
+    try {
+        const currentUser = await User.findById(req.user._id);
+        
+        // Find users who are NOT the current user AND NOT already in the following list
+        const users = await User.find({
+            _id: { 
+                $ne: req.user._id,        // Not me
+                $nin: currentUser.following // Not someone I already follow
+            }
+        })
+        .select('username profilePicture bio')
+        .limit(5); // Return only 5 suggestions
+
+        res.status(200).json(users);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+const updatePassword = async (req, res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        
+        // 1. Find the user. Ensure password field is included for comparison
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // 2. Use the CORRECT method name from your model: matchPassword
+        const isMatch = await user.matchPassword(currentPassword);
+        if (!isMatch) {
+            return res.status(400).json({ message: "Current password is incorrect" });
+        }
+
+        // 3. Update password. The pre-save hook handles hashing
+        user.password = newPassword;
+        await user.save();
+
+        res.status(200).json({ message: "Password updated successfully" });
+    } catch (error) {
+        console.error("Password Update Error:", error);
+        res.status(500).json({ message: "Internal server error" });
+    }
+};
 
 module.exports = {
     getUserProfile,
     updateUserProfile,
+    updatePassword,
     followUnfollowUser,
+    getSuggestions,
     getFollowingList,
     getFollowersList,
     searchUsers

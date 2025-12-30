@@ -3,6 +3,8 @@ const {
     getUserProfile,
     updateUserProfile,
     followUnfollowUser,
+    getSuggestions,
+    updatePassword,
     searchUsers,
     getFollowingList, // Ensure this is exported in userController.js
     getFollowersList
@@ -15,6 +17,7 @@ const router = express.Router();
 
 // 1. SPECIFIC STATIC ROUTES FIRST
 router.get('/search', protect, searchUsers); 
+router.get('/suggestions', protect, getSuggestions);
 // router.get('/:id', protect, getUserProfile);// 
 
 // 2. THE PROFILE ROUTE SECOND (So it doesn't get caught by :id)
@@ -30,5 +33,7 @@ router.put('/:id/follow', protect, followUnfollowUser);
 // Add these to sahilprajapati2005/social-media/.../server/routes/userRoutes.js
 router.get('/:id/following', protect, getFollowingList); // Get who a user follows
 router.get('/:id/followers', protect, getFollowersList); // Get who follows a user
+
+router.put('/update-password', protect, updatePassword);
 
 module.exports = router;

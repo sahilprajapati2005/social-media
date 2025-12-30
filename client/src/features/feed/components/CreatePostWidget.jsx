@@ -5,7 +5,7 @@ import { AiOutlinePicture, AiOutlineVideoCamera, AiOutlineClose } from 'react-ic
 // App Logic
 import { addPost } from '../feedSlice';
 import api from '../../../utils/axios';
-import { useToast } from '../../../context/ToastContext'; //
+import { useToast } from '../../../context/ToastContext'; 
 
 // Components
 import Avatar from '../../../components/ui/Avatar';
@@ -14,10 +14,7 @@ import Button from '../../../components/ui/Button';
 const CreatePostWidget = () => {
   const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
-  
-  // FIX: Destructure showToast to match ToastContext.jsx
   const { showToast } = useToast(); 
-  
   
   const fileInputRef = useRef();
 
@@ -29,9 +26,10 @@ const CreatePostWidget = () => {
   const handleFileChange = (e, type) => {
     const selectedFile = e.target.files[0];
     if (selectedFile) {
-      const sizeLimit = 50 * 1024 * 1024; // 10MB
+      // Updated: 50MB limit to match server-side uploadMiddleware.js
+      const sizeLimit = 50 * 1024 * 1024; 
       if (selectedFile.size > sizeLimit) {
-        return showToast('File size too large (Max 10MB)', 'error'); //
+        return showToast('File size too large (Max 50MB)', 'error'); 
       }
       setFile(selectedFile);
       setMediaType(type);
@@ -39,6 +37,10 @@ const CreatePostWidget = () => {
   };
 
   const clearFile = () => {
+    // Cleanup: Revoke the local object URL to free up memory
+    if (file) {
+      URL.revokeObjectURL(URL.createObjectURL(file));
+    }
     setFile(null);
     setMediaType(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -51,11 +53,10 @@ const CreatePostWidget = () => {
     setIsLoading(true);
     const formData = new FormData();
     
-    // FIX: Match backend req.body.caption
+    // Backend expects 'caption' and 'image' (even for videos)
     formData.append('caption', desc); 
     
     if (file) {
-      // FIX: Match backend upload.single('image')
       formData.append('image', file); 
     }
 
@@ -64,16 +65,16 @@ const CreatePostWidget = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       
+      // Add the new post to the Redux store
       dispatch(addPost(res.data));
       
       setDesc('');
       clearFile();
-      showToast('Post published successfully!', 'success'); //
-    }catch (err) {
-    console.error(err);
-    // Use showToast instead of addToast
-    showToast('Failed to post. Please try again.', 'error'); 
-} finally {
+      showToast('Post published successfully!', 'success'); 
+    } catch (err) {
+      console.error("Create Post Error:", err);
+      showToast('Failed to post. Please try again.', 'error'); 
+    } finally {
       setIsLoading(false);
     }
   };

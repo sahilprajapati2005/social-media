@@ -10,7 +10,9 @@ const SettingsPage = () => {
   const { user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { addToast } = useToast();
+  
+  // ✅ FIX: Use showToast instead of addToast to match your Context API
+  const { showToast } = useToast();
 
   const [passData, setPassData] = useState({
     currentPassword: '',
@@ -26,20 +28,21 @@ const SettingsPage = () => {
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
     if (passData.newPassword !== passData.confirmPassword) {
-      return addToast("New passwords do not match", "error");
+      return showToast("New passwords do not match", "error");
     }
 
     setLoading(true);
     try {
+      // ✅ Matches the backend route /api/users/update-password
       await api.put('/users/update-password', {
-        userId: user._id,
         currentPassword: passData.currentPassword,
         newPassword: passData.newPassword
       });
-      addToast("Password updated successfully", "success");
+      
+      showToast("Password updated successfully", "success");
       setPassData({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (error) {
-      addToast(error.response?.data?.message || "Failed to update password", "error");
+      showToast(error.response?.data?.message || "Failed to update password", "error");
     } finally {
       setLoading(false);
     }
@@ -52,9 +55,9 @@ const SettingsPage = () => {
       await api.delete(`/users/${user._id}`);
       dispatch(logout());
       navigate('/login');
-      addToast("Account deleted successfully", "success");
+      showToast("Account deleted successfully", "success");
     } catch (error) {
-      addToast("Failed to delete account", "error");
+      showToast("Failed to delete account", "error");
     }
   };
 
@@ -109,7 +112,7 @@ const SettingsPage = () => {
             <button
               type="submit"
               disabled={loading}
-              className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-blue-300"
+              className="rounded-lg bg-blue-600 px-6 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-blue-300 transition"
             >
               {loading ? "Updating..." : "Update Password"}
             </button>
@@ -130,7 +133,7 @@ const SettingsPage = () => {
 
         <button
           onClick={handleDeleteAccount}
-          className="flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100"
+          className="flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100 transition"
         >
           <AiOutlineDelete />
           Delete Account

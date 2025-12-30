@@ -180,11 +180,28 @@ const getPostById = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 }
+// @desc    Search posts by caption
+// @route   GET /api/posts/search
+const searchPosts = async (req, res) => {
+  const { query } = req.query;
+  try {
+    const posts = await Post.find({
+      caption: { $regex: query, $options: 'i' }
+    })
+    .populate('user', 'username profilePicture')
+    .limit(20);
+    
+    res.status(200).json(posts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 
 module.exports = { 
     createPost, 
     getFeedPosts, 
+    searchPosts,
     likePost,
     addComment,
     getPostById,
