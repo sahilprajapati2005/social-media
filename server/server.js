@@ -16,6 +16,7 @@ connectDB();
 require('./config/passport'); 
 
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 // 3. Initialize Socket.io with Notification Support
