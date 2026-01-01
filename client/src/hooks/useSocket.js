@@ -11,7 +11,7 @@ const useSocket = () => {
   useEffect(() => {
     if (user?._id) {
       // Point to port 5000 where your server.js is listening
-      socket.current = io("https://social-media-hjve.onrender.com", {
+      socket.current = io(import.meta.env.VITE_API_URL.replace('/api', ''), {
         withCredentials: true,
         transports: ["websocket", "polling"], // Added polling as a fallback
         reconnectionAttempts: 5,

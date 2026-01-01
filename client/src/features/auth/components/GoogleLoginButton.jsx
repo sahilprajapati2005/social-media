@@ -2,14 +2,13 @@ import React from 'react';
 import { FcGoogle } from 'react-icons/fc';
 
 const GoogleLoginButton = () => {
-  const handleGoogleLogin = () => {
-    // Redirects the browser to the Backend Google Auth Route
-    // Ensure your .env file has VITE_API_URL defined, or default to localhost
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    
-    // This initiates the OAuth flow handled by Passport.js on the backend
-    window.location.href = `${apiUrl}/auth/google`;
-  };
+const handleGoogleLogin = () => {
+  // Use the same base URL as your axios instance
+  const apiUrl = 'https://social-media-hjve.onrender.com/api'; 
+  
+  // Ensure the path is /api/auth/google
+  window.location.href = `${apiUrl}/auth/google`;
+};
 
   return (
     <button
