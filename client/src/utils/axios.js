@@ -3,7 +3,7 @@ import { logout } from '../features/auth/authSlice'; // Adjust path to your auth
 
 // 1. Create an Axios instance (Use this throughout your app instead of default axios)
 const axiosInstance = axios.create({
-  baseURL: 'https://social-app-psi-beige.vercel.app/api', // Backend API URL
+  baseURL: 'https://social-media-hjve.onrender.com/api', // Backend API URL
   withCredentials: true, // Add this line to send cookies to the server
   headers: {
     'Content-Type': 'application/json',

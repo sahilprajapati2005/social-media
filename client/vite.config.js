@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
       port: 5173, // Standard Vite port
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'https://social-app-psi-beige.vercel.app',
+          target: env.VITE_API_URL || 'https://social-media-hjve.onrender.com/api',
           changeOrigin: true,
           secure: false,
         },
