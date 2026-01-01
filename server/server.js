@@ -8,7 +8,7 @@ const cookieParser = require('cookie-parser');
 const passport = require('passport'); 
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
-// 1. Load Environment Variables & Connect DB
+// 1. Load Environment Variables & Connect DBhttps://social-app-8b2s.onrender.com
 dotenv.config();
 connectDB();
 
