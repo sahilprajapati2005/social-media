@@ -55,6 +55,7 @@ const loginUser = async (req, res) => {
                     username: user.username,
                     email: user.email,
                     profilePicture: user.profilePicture,
+                    
                 },
                 token: token
             });
